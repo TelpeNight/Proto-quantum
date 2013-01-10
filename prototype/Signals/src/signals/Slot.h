@@ -255,8 +255,6 @@ ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
 
 #define QU_THIS_TYPE prototype::TypeHelper<std::remove_reference<decltype(*this)>::type>::type
 
-//TODO test shortcuts
-//TODO add additional shortcuts
 #define QU_METHOD_RETURN_TYPE(ClassType, methodname, methodArgs) \
 		decltype(std::declval< ClassType >().##methodname##(std::declval< methodArgs >()...))
 

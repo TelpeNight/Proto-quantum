@@ -58,13 +58,13 @@ struct TestSuite {
 	double method2(int a, double b) const {
 		return a + b;
 	}
-
+	//TODO use new constructor brackets;
 	void constructorTest() {
 		using namespace prototype;
 
-		Slot<int (int)> thisSlot(this, &TestSuite::method1);
-		Slot<int (int, int)> thisSlot2(this, &TestSuite::method2);
-		Slot<int (int, double)> thisSlot3(this, &TestSuite::method2);
+		Slot<int (int)> thisSlot {this, &TestSuite::method1};
+		Slot<int (int, int)> thisSlot2 {this, &TestSuite::method2};
+		Slot<int (int, double)> thisSlot3 {this, &TestSuite::method2};
 		QU_THIS_OVERLOADSLOT(void (int), voidSlot, method1, int (int));
 
 		Slot<int (int)> copySlot(thisSlot);
