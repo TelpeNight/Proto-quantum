@@ -69,13 +69,26 @@ using RemoveRef =
         Invoke<std::remove_reference<T>
 >;
 
-template <class Class, typename Signature>
+
+class ConstMethod{};
+class NonConstMethod{};
+
+template <class Class, typename Signature, class IsConst = NonConstMethod>
 class MemberFunctionCast;
 
 template<class Class, typename ReturnType, typename... Args>
-class MemberFunctionCast<Class, ReturnType (Args...)> {
+class MemberFunctionCast<Class, ReturnType (Args...), NonConstMethod> {
 public:
     typedef ReturnType (Class::*MemberType)(Args...);
+    static MemberType cast(MemberType method) {
+        return method;
+    }
+};
+
+template<class Class, typename ReturnType, typename... Args>
+class MemberFunctionCast<Class, ReturnType (Args...), ConstMethod> {
+public:
+    typedef ReturnType (Class::*MemberType)(Args...) const;
     static MemberType cast(MemberType method) {
         return method;
     }
@@ -91,6 +104,21 @@ public:
     static MemberType cast(MemberType method) {
         return method;
     }
+};
+
+template <typename MemberSignature>
+class MemberSignatureExtractor;
+
+template <class Class, typename ReturnType, typename... ArgsType>
+class MemberSignatureExtractor<ReturnType (Class::*)(ArgsType...)> {
+public:
+    typedef ReturnType (type)(ArgsType...);
+};
+
+template <class Class, typename ReturnType, typename... ArgsType>
+class MemberSignatureExtractor<ReturnType (Class::*)(ArgsType...) const> {
+public:
+    typedef ReturnType (type)(ArgsType...);
 };
 
 class BadSlotFunctionPointer: public std::invalid_argument {
@@ -255,24 +283,55 @@ ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
 
 #define QU_THIS_TYPE prototype::TypeHelper<std::remove_reference<decltype(*this)>::type>::type
 
+#define QU_OBJ_TYPE(object)\
+    prototype::TypeHelper<std::remove_reference<decltype(*object)>::type>::type
+
 #define QU_METHOD_RETURN_TYPE(ClassType, methodname, methodArgs) \
 		decltype(std::declval< ClassType >().##methodname##(std::declval< methodArgs >()...))
 
 #define QU_METHOD_RETURN_TYPE_2(ClassType, methodname, methodArgs) \
 		typename std::result_of<decltype(&FakeComponent::method)(FakeComponent,int)>::type b = 6;
 
-#define QU_THIS_SLOT(varname, method, signature)        \
-		prototype::Slot< signature > varname (this, & QU_THIS_TYPE::method)
+#define QU_THIS_SLOT(varname, method)       \
+        prototype::Slot<                    \
+            prototype::MemberSignatureExtractor< decltype(& QU_THIS_TYPE::method) >::type        \
+        > varname (this, & QU_THIS_TYPE::method);
 
-#define QU_THIS_OVERLOADSLOT(slotSignature, varname, method, signature)        \
-        prototype::Slot< slotSignature > varname (this,             \
-            MemberFunctionCast<QU_THIS_TYPE, signature>::cast(& QU_THIS_TYPE::method)       \
-)
+#define QU_THIS_OVERLOADSLOT(varname, method, signature, ...)    \
+        prototype::Slot< signature > varname (this,         \
+                   prototype::MemberFunctionCast<QU_THIS_TYPE, signature, ##__VA_ARGS__>::cast(& QU_THIS_TYPE::method)       \
+        )
 
-#define QU_THIS_STATICSLOT(slotSignature, varname, method, signature)        \
-        prototype::Slot< slotSignature > varname (                           \
-            SignaturePointerCast<signature>::cast(& QU_THIS_TYPE::method)       \
-)
+#define QU_THIS_OTHERSLOT(varname, slotSignature, method)   \
+        prototype::Slot< slotSignature > varname (this, & QU_THIS_TYPE::method);
+
+#define QU_THIS_OTHER_OVERLOADSLOT(varname, slotSignature, method, signature, ...)    \
+        prototype::Slot< slotSignature > varname (this,         \
+                   prototype::MemberFunctionCast<QU_THIS_TYPE, signature, ##__VA_ARGS__>::cast(& QU_THIS_TYPE::method)       \
+        )
+
+#define QU_SLOT(obj, varname, method)       \
+        prototype::Slot<                    \
+            prototype::MemberSignatureExtractor< decltype(& QU_OBJ_TYPE(obj)::method) >::type        \
+        > varname (obj, & QU_OBJ_TYPE(obj)::method);
+
+#define QU_OVERLOADSLOT(obj, varname, method, signature, ...)    \
+        prototype::Slot< signature > varname (obj,         \
+                   prototype::MemberFunctionCast<QU_OBJ_TYPE(obj), signature, ##__VA_ARGS__>::cast(& QU_OBJ_TYPE(obj)::method)       \
+        )
+
+#define QU_OTHERSLOT(obj, varname, slotSignature, method)   \
+        prototype::Slot< slotSignature > varname (obj, & QU_OBJ_TYPE(obj)::method);
+
+#define QU_OTHER_OVERLOADSLOT(obj,varname, slotSignature, method, signature, ...)    \
+        prototype::Slot< slotSignature > varname (obj,         \
+                   prototype::MemberFunctionCast<QU_OBJ_TYPE(obj), signature, ##__VA_ARGS__>::cast(& QU_OBJ_TYPE(obj)::method)       \
+        )
+
+//#define QU_THIS_STATICSLOT(slotSignature, varname, method, signature)        \
+//        prototype::Slot< slotSignature > varname (                           \
+//            SignaturePointerCast<signature>::cast(& QU_THIS_TYPE::method)       \
+//)
 
 #define quCallback(method, signature)        \
 		prototype::Slot< signature > (this, & QU_THIS_TYPE::method)
