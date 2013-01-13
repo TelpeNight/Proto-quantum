@@ -121,13 +121,36 @@ public:
     typedef ReturnType (type)(ArgsType...);
 };
 
+template <typename FunctionType>
+class FunctionSignatureExtractor;
+
+template <typename ReturnType, typename... ArgsType>
+class FunctionSignatureExtractor<ReturnType (*)(ArgsType...)> {
+public:
+    typedef ReturnType (type)(ArgsType...);
+};
+
+template <typename ReturnType, typename... ArgsType>
+class FunctionSignatureExtractor<ReturnType (ArgsType...)> {
+public:
+    typedef ReturnType (type)(ArgsType...);
+};
+
 class BadSlotFunctionPointer: public std::invalid_argument {
 public:
-    BadSlotFunctionPointer(const std::string& what) :
+    BadSlotFunctionPointer(const std::string& what = "") :
             std::invalid_argument(what) {
     }
 };
 
+class BadSlotInstancePointer: public std::invalid_argument {
+public:
+    BadSlotInstancePointer(const std::string& what = "") :
+            std::invalid_argument(what) {
+    }
+};
+
+//TODO default constructor
 template<typename FunctionSignature>
 class Slot;
 
@@ -209,6 +232,9 @@ template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType, typename MemberType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) {
 
+    if (pComponent == nullptr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
     if (functor == nullptr) {
         throw new BadSlotFunctionPointer("Binding null method pointer");
 	}
@@ -225,6 +251,9 @@ template<typename ComponentType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent,
                                     ReturnType (ComponentType::*functor)(ArgTypes...)) {
 
+    if (pComponent == nullptr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
     if (functor == nullptr) {
         throw new BadSlotFunctionPointer("Binding null method pointer");
     }
@@ -244,9 +273,6 @@ template<typename StaticFunction,
 >
 Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor)
 {
-    if (functor == nullptr) {
-        throw new BadSlotFunctionPointer("Slot with null function pointer");
-    }
     _function = std::forward<StaticFunction>(functor);
 }
 
@@ -268,7 +294,6 @@ Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
     _function(std::forward<Functor>(functor))
 {}
 
-//TODO invoke functor in specific context. All arguments should by copied
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
     return _function(std::forward<ArgTypes>(arguments)...);
@@ -328,10 +353,23 @@ ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
                    prototype::MemberFunctionCast<QU_OBJ_TYPE(obj), signature, ##__VA_ARGS__>::cast(& QU_OBJ_TYPE(obj)::method)       \
         )
 
-//#define QU_THIS_STATICSLOT(slotSignature, varname, method, signature)        \
-//        prototype::Slot< slotSignature > varname (                           \
-//            SignaturePointerCast<signature>::cast(& QU_THIS_TYPE::method)       \
-//)
+#define QU_STATIC_SLOT(varname, function)   \
+        prototype::Slot<                    \
+            prototype::FunctionSignatureExtractor<decltype(function)>::type     \
+        > varname {function}
+
+#define QU_STATIC_OTHERSLOT(varname, slotSignature, function)       \
+        prototype::Slot< slotSignature > varname {function}
+
+#define QU_STATIC_OVERLOADSLOT(varname, function, signature)        \
+        prototype::Slot< signature > varname {                      \
+            prototype::SignaturePointerCast<signature>::cast(function)      \
+        }
+
+#define QU_STATIC_OTHER_OVERLOADSLOT(varname, slotSignature, function, signature)   \
+        prototype::Slot< slotSignature > varname {                                 \
+            prototype::SignaturePointerCast<signature>::cast(function)                         \
+        }
 
 #define quCallback(method, signature)        \
 		prototype::Slot< signature > (this, & QU_THIS_TYPE::method)

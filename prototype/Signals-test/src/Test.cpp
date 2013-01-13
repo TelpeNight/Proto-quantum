@@ -18,10 +18,36 @@ public:
 	}
 };
 
+static int notOverloadedFunction() {
+        return 0;
+    }
+
+static float overloadFunction(int a) {
+    return a;
+}
+
+static float overloadFunction(int a, int b) {
+    return a + b;
+}
+
 struct TestSuite {
 	virtual ~TestSuite(){}
 
 	typedef int (TestSuite::*MethodType)(int);
+
+	static int notOverloadedMethodSt() {
+        return 0;
+    }
+
+    static float overloadSt(int a) {
+        return a;
+    }
+
+    static float overloadSt(int a, int b) {
+        return a + b;
+    }
+
+    //----------------------------------------//
 
 	int notOverloadedMethod() {
 	    return 0;
@@ -56,7 +82,6 @@ struct TestSuite {
 	}
 
 	//TODO weak pointers to this
-	//TODO nullptr exception for this
 	void thisConstructorTest() {
 		using namespace prototype;
 
@@ -102,31 +127,73 @@ struct TestSuite {
 				Slot<int (int)> nullSlot(this, (MethodType)NULL),
 				prototype::BadSlotFunctionPointer*);
 		ASSERT_THROWSM("Binding nullptr member",
-				Slot<int (int)> nullSlot2(this, (MethodType)nullptr),
+				Slot<int (int)> nullSlot(this, (MethodType)nullptr),
 				prototype::BadSlotFunctionPointer*);
-//
-//		Slot<int (int)> staticSlot(&TestSuite::method1St);
-//		Slot<int (int, double)> staticSlot3(&TestSuite::method2St);
-//
-//		Slot<int (int)> staticSlot7(TestSuite::method1St);
-//		//QU_THIS_STATICSLOT(int (double), staticSlot72, method1St, int (int));
-//		Slot<int (int, double)> staticSlot6(TestSuite::method2St);
-//		Slot<int (int, int)> staticSlot62(TestSuite::method2St);
-//
-//		Slot<int (int)> staticSlot4(&foo1);
-//		Slot<int (int, int)> staticSlot5(&foo2);
+
+		ASSERT_THROWSM("Binding nullptr instance",
+                Slot<int ()> nullSlot((TestSuite*)NULL, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
+        ASSERT_THROWSM("Binding nullptr instance",
+                Slot<int ()> nullSlot((TestSuite*)nullptr, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
 //
 //		Functor foo;
 //		Slot<int (int)> functorSlot(foo);
 //		Slot<int (double)> functorSlot2(foo);
-//
-//		ASSERT_THROWSM("Binding nullptr member",
-//				Slot<int (int)> staticSlot6((FooType)NULL),
-//				prototype::BadSlotFunctionPointer*);
-//		ASSERT_THROWSM("Binding nullptr member",
-//				Slot<int (int)> staticSlot6((FooType)nullptr),
-//				prototype::BadSlotFunctionPointer*);
 	}
+
+	//TODO {} in constructors
+	void staticScopeSlotTest() {
+	    QU_STATIC_SLOT(staticSLot, notOverloadedMethodSt);
+	    QU_STATIC_SLOT(staticSLotPtr, &notOverloadedMethodSt);
+
+	    QU_STATIC_OTHERSLOT(other_staticSLot, void (), notOverloadedMethodSt);
+	    QU_STATIC_OTHERSLOT(other_staticSLotPtr, double (), &notOverloadedMethodSt);
+
+	    QU_STATIC_OVERLOADSLOT(overload1, overloadSt, float (int));
+	    QU_STATIC_OTHERSLOT(other_overload1, float (int), overloadSt);
+	    QU_STATIC_OVERLOADSLOT(overload1Ptr, &overloadSt, float (int));
+	    QU_STATIC_OTHERSLOT(other_overload1Ptr, float (int), &overloadSt);
+
+	    QU_STATIC_OVERLOADSLOT(overload2, overloadSt, float (int, int));
+        QU_STATIC_OTHERSLOT(other_overload2, float (int, int), overloadSt);
+        QU_STATIC_OVERLOADSLOT(overload2Ptr, &overloadSt, float (int, int));
+        QU_STATIC_OTHERSLOT(other_overload2Ptr, float (int, int), &overloadSt);
+
+        QU_STATIC_OTHER_OVERLOADSLOT(overload1_other, void (float), overloadSt, float (int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload1Ptr_other, float (float), &overloadSt, float (int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float ,double), overloadSt, float (int, int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload2Ptr_other, int (int, int), &overloadSt, float (int, int));
+
+        prototype::Slot<int (int)> staticSlotNULL((FooType)NULL);
+        prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
+	}
+
+	void staticSlotTest() {
+        QU_STATIC_SLOT(staticSLot, notOverloadedFunction);
+        QU_STATIC_SLOT(staticSLotPtr, &notOverloadedFunction);
+
+        QU_STATIC_OTHERSLOT(other_staticSLot, void (), notOverloadedFunction);
+        QU_STATIC_OTHERSLOT(other_staticSLotPtr, double (), &notOverloadedFunction);
+
+        QU_STATIC_OVERLOADSLOT(overload1, overloadFunction, float (int));
+        QU_STATIC_OTHERSLOT(other_overload1, float (int), overloadFunction);
+        QU_STATIC_OVERLOADSLOT(overload1Ptr, &overloadFunction, float (int));
+        QU_STATIC_OTHERSLOT(other_overload1Ptr, float (int), &overloadFunction);
+
+        QU_STATIC_OVERLOADSLOT(overload2, overloadFunction, float (int, int));
+        QU_STATIC_OTHERSLOT(other_overload2, float (int, int), overloadFunction);
+        QU_STATIC_OVERLOADSLOT(overload2Ptr, &overloadFunction, float (int, int));
+        QU_STATIC_OTHERSLOT(other_overload2Ptr, float (int, int), &overloadFunction);
+
+        QU_STATIC_OTHER_OVERLOADSLOT(overload1_other, void (float), overloadFunction, float (int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload1Ptr_other, float (float), &overloadFunction, float (int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float ,double), overloadFunction, float (int, int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload2Ptr_other, int (int, int), &overloadFunction, float (int, int));
+
+        prototype::Slot<int (int)> staticSlotNULL((FooType)NULL);
+        prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
+    }
 
 	void assignTest() {
 	    using namespace prototype;
@@ -183,14 +250,48 @@ void nonThisConstructorTest() {
     QU_OTHER_OVERLOADSLOT(object, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
     QU_OTHER_OVERLOADSLOT(object, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
 
-    ASSERT_THROWSM("Binding nullptr member",
+    ASSERT_THROWSM("Binding NULL member",
             prototype::Slot<int (int)> nullSlot(object, (TestSuite::MethodType)NULL),
             prototype::BadSlotFunctionPointer*);
     ASSERT_THROWSM("Binding nullptr member",
             prototype::Slot<int (int)> nullSlot2(object, (TestSuite::MethodType)nullptr),
             prototype::BadSlotFunctionPointer*);
 
+    ASSERT_THROWSM("Binding nullptr instance",
+            prototype::Slot<int ()> nullSlot((TestSuite*)NULL, &TestSuite::notOverloadedMethod),
+            prototype::BadSlotInstancePointer*);
+    ASSERT_THROWSM("Binding nullptr instance",
+            prototype::Slot<int ()> nullSlot((TestSuite*)nullptr, &TestSuite::notOverloadedMethod),
+            prototype::BadSlotInstancePointer*);
+
     delete object;
+}
+
+void staticSlotTest() {
+    QU_STATIC_SLOT(staticSLot, TestSuite::notOverloadedMethodSt);
+    QU_STATIC_SLOT(staticSLotPtr, &TestSuite::notOverloadedMethodSt);
+
+    QU_STATIC_OTHERSLOT(other_staticSLot, void (), TestSuite::notOverloadedMethodSt);
+    QU_STATIC_OTHERSLOT(other_staticSLotPtr, double (), &TestSuite::notOverloadedMethodSt);
+
+    QU_STATIC_OVERLOADSLOT(overload1, TestSuite::overloadSt, float (int));
+    QU_STATIC_OTHERSLOT(other_overload1, float (int), TestSuite::overloadSt);
+    QU_STATIC_OVERLOADSLOT(overload1Ptr, &TestSuite::overloadSt, float (int));
+    QU_STATIC_OTHERSLOT(other_overload1Ptr, float (int), &TestSuite::overloadSt);
+
+    QU_STATIC_OVERLOADSLOT(overload2, TestSuite::overloadSt, float (int, int));
+    QU_STATIC_OTHERSLOT(other_overload2, float (int, int), TestSuite::overloadSt);
+    QU_STATIC_OVERLOADSLOT(overload2Ptr, &TestSuite::overloadSt, float (int, int));
+    QU_STATIC_OTHERSLOT(other_overload2Ptr, float (int, int), &TestSuite::overloadSt);
+
+    QU_STATIC_OTHER_OVERLOADSLOT(overload1_other, void (float), TestSuite::overloadSt, float (int));
+    QU_STATIC_OTHER_OVERLOADSLOT(overload1Ptr_other, float (float), &TestSuite::overloadSt, float (int));
+    QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float ,double), TestSuite::overloadSt, float (int, int));
+    QU_STATIC_OTHER_OVERLOADSLOT(overload2Ptr_other, int (int, int), &TestSuite::overloadSt, float (int, int));
+
+
+    prototype::Slot<int (int)> staticSlotNULL((FooType)NULL);
+    prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
 }
 
 void runSuite(){
@@ -198,6 +299,9 @@ void runSuite(){
 
 	s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
 	s += CUTE(nonThisConstructorTest);
+	s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
+	s += CUTE(staticSlotTest);
+	s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
 	s += CUTE_SMEMFUN(TestSuite, assignTest);
 
 	cute::ide_listener lis;
