@@ -3,6 +3,7 @@
 #include "cute_runner.h"
 
 #include "signals/Slot.h"
+#include "signals/SlotShortcuts.h"
 
 typedef int (*FooType)(int);
 
@@ -79,6 +80,12 @@ struct TestSuite {
 
 	float overload(int a, int b) {
 	    return a + b;
+	}
+
+	void defaultConstructorTest() {
+	    using namespace prototype;
+	    Slot<int ()> slot;
+	    Slot<int ()> slot2(nullptr);
 	}
 
 	//TODO weak pointers to this
@@ -297,6 +304,7 @@ void staticSlotTest() {
 void runSuite(){
 	cute::suite s;
 
+	s += CUTE_SMEMFUN(TestSuite, defaultConstructorTest);
 	s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
 	s += CUTE(nonThisConstructorTest);
 	s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
