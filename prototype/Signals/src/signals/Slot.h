@@ -177,8 +177,7 @@ public:
                 Slot<ReturnType(ArgTypes...)>
             >
         > = {}
-    >
-    Slot(Functor&& functor);
+    > Slot(Functor&& functor);
 
     template<typename StaticFunction,
         EnableIf <
@@ -186,8 +185,7 @@ public:
                 RemoveAll<StaticFunction>
             >
         > = {}
-    >
-    Slot(StaticFunction&& functor);
+    > Slot(StaticFunction&& functor);
     Slot(FunctionSignature* function);
 
     Slot(const Slot& other);
@@ -270,8 +268,7 @@ template<typename StaticFunction,
     EnableIf<
         std::is_function<RemoveAll<StaticFunction> >
     >
->
-Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor)
+> Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor)
 {
     _function = std::forward<StaticFunction>(functor);
 }
@@ -289,8 +286,7 @@ template<typename Functor,
             Slot<ReturnType(ArgTypes...)>
         >
     >
->
-Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
+> Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
     _function(std::forward<Functor>(functor))
 {}
 
