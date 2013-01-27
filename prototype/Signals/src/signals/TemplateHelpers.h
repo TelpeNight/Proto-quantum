@@ -17,9 +17,6 @@ namespace prototype {
 template <typename T>
 using Invoke = typename T::type;
 
-template <typename T>
-using Type = Invoke<TypeHelper<T> >;
-
 namespace detail {enum class enabler {};}
 
 template<typename ... T>

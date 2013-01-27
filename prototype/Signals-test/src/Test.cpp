@@ -14,9 +14,20 @@ public:
 		return a;
 	}
 
-	int operator()(double a) {
-		return 0xff;
-	}
+//	int operator()(double a) {
+//		return 0xff;
+//	}
+};
+
+class OverLoadedFunctor {
+public:
+    int operator()(int a) {
+        return a;
+    }
+
+    int operator()(double a) {
+      return 0xff;
+    }
 };
 
 static int notOverloadedFunction() {
@@ -202,9 +213,23 @@ struct TestSuite {
         prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
     }
 
+	void functorConstructorTest() {
+	    QU_STATIC_SLOT(functorSlot, Functor());
+	    QU_STATIC_OTHERSLOT(other_staticSLot, void (float), Functor());
+
+	    QU_STATIC_OVERLOADSLOT(overload1, OverLoadedFunctor(), int (int));
+	    QU_STATIC_OTHERSLOT(other_overload1, int (int), OverLoadedFunctor());
+
+	    QU_STATIC_OVERLOADSLOT(overload2, OverLoadedFunctor(), float (double));
+	    QU_STATIC_OTHERSLOT(other_overload2, float (double), OverLoadedFunctor());
+
+	    QU_STATIC_OTHER_OVERLOADSLOT(overload1_other, void (float), OverLoadedFunctor(), int (int));
+	    QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float), OverLoadedFunctor(), int (double));
+	}
+
 	void assignTest() {
 	    using namespace prototype;
-	    Functor foo;
+	    //Functor foo;
 
 //	    Slot<int (int)> thisSlot(this, &TestSuite::method1);
 //	    Slot<int (int)> staticSlot(&TestSuite::method1St);
@@ -310,6 +335,7 @@ void runSuite(){
 	s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
 	s += CUTE(staticSlotTest);
 	s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
+	s += CUTE_SMEMFUN(TestSuite, functorConstructorTest);
 	s += CUTE_SMEMFUN(TestSuite, assignTest);
 
 	cute::ide_listener lis;

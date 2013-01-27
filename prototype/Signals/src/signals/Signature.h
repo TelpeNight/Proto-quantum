@@ -44,6 +44,11 @@ public:
     static MemberType cast(MemberType method) {
         return method;
     }
+
+    template<class Functor>
+    static auto cast(Functor&& functor) -> decltype(std::forward<Functor>(functor)) {
+        return std::forward<Functor>(functor);
+    }
 };
 
 template <typename MemberSignature>
@@ -62,7 +67,10 @@ public:
 };
 
 template <typename FunctionType>
-class FunctionSignatureExtractor;
+class FunctionSignatureExtractor {
+public:
+    typedef typename MemberSignatureExtractor<decltype(&FunctionType::operator())>::type type;
+};
 
 template <typename ReturnType, typename... ArgsType>
 class FunctionSignatureExtractor<ReturnType (*)(ArgsType...)> {
@@ -75,6 +83,11 @@ class FunctionSignatureExtractor<ReturnType (ArgsType...)> {
 public:
     typedef ReturnType (type)(ArgsType...);
 };
+
+//template <class Functor>
+//class FunctionSignatureExtractor<Functor> {
+//
+//};
 
 }
 
