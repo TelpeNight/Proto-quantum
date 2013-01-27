@@ -13,10 +13,6 @@ public:
 	int operator()(int a) {
 		return a;
 	}
-
-//	int operator()(double a) {
-//		return 0xff;
-//	}
 };
 
 class OverLoadedFunctor {
@@ -154,13 +150,8 @@ struct TestSuite {
         ASSERT_THROWSM("Binding nullptr instance",
                 Slot<int ()> nullSlot((TestSuite*)nullptr, &TestSuite::notOverloadedMethod),
                 prototype::BadSlotInstancePointer*);
-//
-//		Functor foo;
-//		Slot<int (int)> functorSlot(foo);
-//		Slot<int (double)> functorSlot2(foo);
 	}
 
-	//TODO {} in constructors
 	void staticScopeSlotTest() {
 	    QU_STATIC_SLOT(staticSLot, notOverloadedMethodSt);
 	    QU_STATIC_SLOT(staticSLotPtr, &notOverloadedMethodSt);
@@ -229,22 +220,22 @@ struct TestSuite {
 
 	void assignTest() {
 	    using namespace prototype;
-	    //Functor foo;
+	    Functor foo;
 
-//	    Slot<int (int)> thisSlot(this, &TestSuite::method1);
-//	    Slot<int (int)> staticSlot(&TestSuite::method1St);
-//	    Slot<int (int)> functorSlot(foo);
-//
-//	    thisSlot = staticSlot;
-//	    staticSlot = functorSlot;
-//	    functorSlot = thisSlot;
+	    Slot<int (int)> thisSlot(this, &TestSuite::notOverloadedMethodConst);
+	    QU_STATIC_OTHER_OVERLOADSLOT(staticSlot, int (int), &TestSuite::overloadSt, float (int));
+	    Slot<int (int)> functorSlot(foo);
 
-	    //QU_THIS_OVERLOADSLOT(void (int), voidSlot, method1, int (int));
-	    //voidSlot = thisSlot;
+	    thisSlot = staticSlot;
+	    staticSlot = functorSlot;
+	    functorSlot = thisSlot;
+
+	    Slot<void (int)> voidSlot(this, &TestSuite::notOverloadedMethodConst);
+	    voidSlot = thisSlot;
 	}
 };
 
-
+//TODO const this and object pointer
 
 void nonThisConstructorTest() {
     TestSuite* object = new TestSuite;
