@@ -19,6 +19,7 @@ class MemberFunctionCast;
 template<class Class, typename ReturnType, typename... Args>
 class MemberFunctionCast<Class, ReturnType (Args...), NonConstMethod> {
 public:
+    static_assert(!std::is_const<Class>::value, "Binding non-const method with const instance pointer");
     typedef ReturnType (Class::*MemberType)(Args...);
     static MemberType cast(MemberType method) {
         return method;
