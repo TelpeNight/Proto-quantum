@@ -7,11 +7,26 @@
 
 #ifndef OBJECTTYPES_H_
 #define OBJECTTYPES_H_
+#include <vector>
+namespace prototype {
 
-#define QU_THIS_TYPE std::remove_reference<decltype(*this)>::type
+template <class Pointer>
+struct AnyPointerType {
+    typedef typename Pointer::element_type type;
+};
+
+template <class Class>
+struct AnyPointerType<Class*> {
+    typedef typename std::remove_reference<Class>::type type;
+};
+
+}
+
 
 #define QU_OBJ_TYPE(object)\
-    std::remove_reference<decltype(*object)>::type
+    prototype::AnyPointerType<decltype(object)>::type
+
+#define QU_THIS_TYPE QU_OBJ_TYPE(this)
 
 
 #endif /* OBJECTTYPES_H_ */

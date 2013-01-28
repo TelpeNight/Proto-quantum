@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <stdexcept>
+#include <type_traits>
 
 namespace prototype {
 
@@ -47,7 +48,8 @@ public:
     template<typename ComponentType>
     Slot(ComponentType* pComponent, ReturnType (ComponentType::*functor)(ArgTypes...));
 
-    template<typename Functor,
+    template<
+        typename Functor,
         EnableIf <
             std::is_class<
                 RemoveRef<Functor>
@@ -61,14 +63,55 @@ public:
         > = {}
     > Slot(Functor&& functor);
 
-    template<typename StaticFunction,
+    template<
+        typename StaticFunction,
         EnableIf <
             std::is_function<
                 RemoveAll<StaticFunction>
             >
         > = {}
-    > Slot(StaticFunction&& functor);
+    >Slot(StaticFunction&& functor);
+
     Slot(FunctionSignature* function);
+
+    template <
+        class WeakPtrType,
+        typename MemberType,
+        EnableIf <
+            std::is_member_function_pointer<
+                decltype(&WeakPtrType::lock)
+            >
+        > = {}
+    >Slot(WeakPtrType& weakPtr, MemberType&& method);
+
+    template <
+        class WeakPtrType,
+        EnableIf <
+            std::is_member_function_pointer<
+                decltype(&WeakPtrType::lock)
+            >
+        > = {}
+    >
+    Slot(WeakPtrType& weakPtr, ReturnType (WeakPtrType::element_type::*method)(ArgTypes...));
+
+    template <
+        class SharedPtrType,
+        typename MemberType,
+        EnableIf <
+            std::is_member_function_pointer<
+                decltype(&SharedPtrType::get)
+            >
+        > = {}
+    >Slot(SharedPtrType& sharedPtr, MemberType&& method);
+
+    template <
+        class SharedPtrType,
+        EnableIf <
+            std::is_member_function_pointer<
+                decltype(&SharedPtrType::get)
+            >
+        > = {}
+    >Slot(SharedPtrType& sharedPtr, ReturnType (SharedPtrType::element_type::*method)(ArgTypes...));
 
     Slot(const Slot& other);
     Slot(Slot&& other);
@@ -165,6 +208,116 @@ Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent,
     _function = [pComponent, functor](ArgTypes&&... args) -> ReturnType {
         return static_cast<ReturnType>(
                 (pComponent->*functor)(std::forward<ArgTypes>(args)...)
+        );
+    };
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class WeakPtrType,
+    typename MemberType,
+    EnableIf <
+        std::is_member_function_pointer<
+            decltype(&WeakPtrType::lock)
+        >
+    >
+>
+Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) {
+    auto sharedPtr = weakPtr.lock();
+    if (!sharedPtr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
+    if (method == nullptr) {
+        throw new BadSlotFunctionPointer("Binding null method pointer");
+    }
+
+    _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
+        auto sharedPtr = weakPtr.lock();
+        if (!sharedPtr) {
+            throw new BadSlotInstancePointer("Binding null instance pointer");
+        }
+        return static_cast<ReturnType>(
+                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+        );
+    };
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class WeakPtrType,
+    EnableIf <
+        std::is_member_function_pointer<
+            decltype(&WeakPtrType::lock)
+        >
+    >
+>
+Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
+                        ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) {
+    auto sharedPtr = weakPtr.lock();
+    if (!sharedPtr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
+    if (method == nullptr) {
+        throw new BadSlotFunctionPointer("Binding null method pointer");
+    }
+
+    _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
+        auto sharedPtr = weakPtr.lock();
+        if (!sharedPtr) {
+            throw new BadSlotInstancePointer("Binding null instance pointer");
+        }
+        return static_cast<ReturnType>(
+                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+        );
+    };
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class SharedPtrType,
+    typename MemberType,
+    EnableIf <
+        std::is_member_function_pointer<
+            decltype(&SharedPtrType::get)
+        >
+    >
+>
+Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) {
+    if (!sharedPtr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
+    if (method == nullptr) {
+        throw new BadSlotFunctionPointer("Binding null method pointer");
+    }
+
+    _function = [sharedPtr, method](ArgTypes&&... args) -> ReturnType {
+        return static_cast<ReturnType>(
+                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+        );
+    };
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class SharedPtrType,
+    EnableIf <
+        std::is_member_function_pointer<
+            decltype(&SharedPtrType::get)
+        >
+    >
+>
+Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr,
+                        ReturnType (SharedPtrType::element_type::*method)(ArgTypes...)) {
+    if (!sharedPtr) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
+    if (method == nullptr) {
+        throw new BadSlotFunctionPointer("Binding null method pointer");
+    }
+
+    _function = [sharedPtr, method](ArgTypes&&... args) -> ReturnType {
+        return static_cast<ReturnType>(
+                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
         );
     };
 }

@@ -4,6 +4,7 @@
 
 #include "signals/Slot.h"
 #include "signals/SlotShortcuts.h"
+#include <memory>
 
 typedef int (*FooType)(int);
 
@@ -258,6 +259,116 @@ struct TestSuite {
 	    QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float), OverLoadedFunctor(), int (double));
 	}
 
+	//TODO scopePtr for object
+	void weakPointerConstructor() {
+	    typedef std::weak_ptr<TestSuite> ThisPtr;
+	    typedef std::shared_ptr<TestSuite> ShPtr;
+
+	    ShPtr sPtr = std::make_shared<TestSuite>();
+	    ThisPtr ptr = sPtr;
+
+	    QU_SLOT(ptr, nonConst, notOverloadedMethod);
+        QU_SLOT(ptr, constSlot, notOverloadedMethodConst);
+
+        QU_OTHERSLOT(ptr, other, float (), notOverloadedMethod);
+        QU_OTHERSLOT(ptr, otherConst, void (double), notOverloadedMethodConst);
+
+        QU_OVERLOADSLOT(ptr, overload, overload, float (int));
+        QU_OTHERSLOT(ptr, overloadOther, float (int), overload);
+        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot, void (double), overload, float (int));
+
+        QU_OVERLOADSLOT(ptr, overload2, overload, float (int, int));
+        QU_OTHERSLOT(ptr, overloadOther2, float (int, int), overload);
+        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot2, void (double, float), overload, float (int, int));
+
+        QU_OTHERSLOT(ptr, complexOther, double (int), overloadedMethod);
+        QU_OTHERSLOT(ptr, complexOther2, double (int, double), overloadedMethod);
+
+        QU_OVERLOADSLOT(ptr, complexOveload, overloadedMethod, double (int));
+        QU_OVERLOADSLOT(ptr, complexOveloadStrict, overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(ptr, complexOveloadConst, overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload, void (long), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict, void (long), overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst, void (long), overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OVERLOADSLOT(ptr, complexOveload2, overloadedMethod, double (int, double));
+        QU_OVERLOADSLOT(ptr, complexOveloadStrict2, overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(ptr, complexOveloadConst2, overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
+
+        ASSERT_THROWSM("Binding NULL member",
+                prototype::Slot<int (int)> nullSlot(ptr, (TestSuite::MethodType)NULL),
+                prototype::BadSlotFunctionPointer*);
+        ASSERT_THROWSM("Binding nullptr member",
+                prototype::Slot<int (int)> nullSlot2(ptr, (TestSuite::MethodType)nullptr),
+                prototype::BadSlotFunctionPointer*);
+
+        ThisPtr nullPtr;
+        ASSERT_THROWSM("Binding nullptr instance",
+                prototype::Slot<int ()> nullSlot(nullPtr, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
+        ASSERT_THROWSM("Binding nullptr instance",
+                prototype::Slot<int ()> nullSlot(nullPtr, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
+	}
+
+	void sharedPointerConstructor() {
+        typedef std::shared_ptr<TestSuite> ThisPtr;
+        ThisPtr ptr = std::make_shared<TestSuite>();
+
+        QU_SLOT(ptr, nonConst, notOverloadedMethod);
+        QU_SLOT(ptr, constSlot, notOverloadedMethodConst);
+
+        QU_OTHERSLOT(ptr, other, float (), notOverloadedMethod);
+        QU_OTHERSLOT(ptr, otherConst, void (double), notOverloadedMethodConst);
+
+        QU_OVERLOADSLOT(ptr, overload, overload, float (int));
+        QU_OTHERSLOT(ptr, overloadOther, float (int), overload);
+        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot, void (double), overload, float (int));
+
+        QU_OVERLOADSLOT(ptr, overload2, overload, float (int, int));
+        QU_OTHERSLOT(ptr, overloadOther2, float (int, int), overload);
+        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot2, void (double, float), overload, float (int, int));
+
+        QU_OTHERSLOT(ptr, complexOther, double (int), overloadedMethod);
+        QU_OTHERSLOT(ptr, complexOther2, double (int, double), overloadedMethod);
+
+        QU_OVERLOADSLOT(ptr, complexOveload, overloadedMethod, double (int));
+        QU_OVERLOADSLOT(ptr, complexOveloadStrict, overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(ptr, complexOveloadConst, overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload, void (long), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict, void (long), overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst, void (long), overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OVERLOADSLOT(ptr, complexOveload2, overloadedMethod, double (int, double));
+        QU_OVERLOADSLOT(ptr, complexOveloadStrict2, overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(ptr, complexOveloadConst2, overloadedMethod, double (int), prototype::ConstMethod);
+
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
+
+        ASSERT_THROWSM("Binding NULL member",
+                prototype::Slot<int (int)> nullSlot(ptr, (TestSuite::MethodType)NULL),
+                prototype::BadSlotFunctionPointer*);
+        ASSERT_THROWSM("Binding nullptr member",
+                prototype::Slot<int (int)> nullSlot2(ptr, (TestSuite::MethodType)nullptr),
+                prototype::BadSlotFunctionPointer*);
+
+        ThisPtr nullPtr;
+        ASSERT_THROWSM("Binding nullptr instance",
+                prototype::Slot<int ()> nullSlot(nullPtr, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
+        ASSERT_THROWSM("Binding nullptr instance",
+                prototype::Slot<int ()> nullSlot(nullPtr, &TestSuite::notOverloadedMethod),
+                prototype::BadSlotInstancePointer*);
+    }
+
 	void assignTest() {
 	    using namespace prototype;
 	    Functor foo;
@@ -274,8 +385,6 @@ struct TestSuite {
 	    voidSlot = thisSlot;
 	}
 };
-
-//TODO const this and object pointer
 
 void nonThisConstructorTest() {
     TestSuite* object = new TestSuite;
@@ -408,6 +517,7 @@ void runSuite(){
 	s += CUTE(staticSlotTest);
 	s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
 	s += CUTE_SMEMFUN(TestSuite, functorConstructorTest);
+	s += CUTE_SMEMFUN(TestSuite, weakPointerConstructor);
 	s += CUTE_SMEMFUN(TestSuite, assignTest);
 
 	cute::ide_listener lis;
