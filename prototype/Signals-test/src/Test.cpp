@@ -505,23 +505,33 @@ void staticSlotTest() {
     prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
 }
 
+template<class Runner>
+void runConstructorTests(Runner& runner) {
+    cute::suite s;
+
+    s += CUTE_SMEMFUN(TestSuite, defaultConstructorTest);
+    s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
+    s += CUTE_SMEMFUN(TestSuite, thisConstructorTestConst);
+    s += CUTE(nonThisConstructorTest);
+    s += CUTE(nonThisConstructorTestConst);
+    s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
+    s += CUTE(staticSlotTest);
+    s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
+    s += CUTE_SMEMFUN(TestSuite, functorConstructorTest);
+    s += CUTE_SMEMFUN(TestSuite, weakPointerConstructor);
+
+    runner(s, "Signal constructor test");
+}
+
+//TODO organize test
 void runSuite(){
+    cute::ide_listener lis;
+    auto runner = cute::makeRunner(lis);
+	runConstructorTests(runner);
+
 	cute::suite s;
-
-	s += CUTE_SMEMFUN(TestSuite, defaultConstructorTest);
-	s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
-	s += CUTE_SMEMFUN(TestSuite, thisConstructorTestConst);
-	s += CUTE(nonThisConstructorTest);
-	s += CUTE(nonThisConstructorTestConst);
-	s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
-	s += CUTE(staticSlotTest);
-	s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
-	s += CUTE_SMEMFUN(TestSuite, functorConstructorTest);
-	s += CUTE_SMEMFUN(TestSuite, weakPointerConstructor);
-	s += CUTE_SMEMFUN(TestSuite, assignTest);
-
-	cute::ide_listener lis;
-	cute::makeRunner(lis)(s, "SignalTest");
+    s += CUTE_SMEMFUN(TestSuite, assignTest);
+    runner(s, "SignalTest");
 }
 
 int main(){
