@@ -31,6 +31,13 @@ public:
     }
 };
 
+class EmptySlot: public std::invalid_argument {
+public:
+    EmptySlot(const std::string& what = "") :
+            std::invalid_argument(what) {
+    }
+};
+
 template<typename FunctionSignature>
 class Slot;
 
@@ -350,6 +357,9 @@ template<typename Functor,
 
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
+    if (!_function) {
+        throw new EmptySlot("Slot<ReturnType(ArgTypes...)>::invoke");
+    }
     return _function(std::forward<ArgTypes>(arguments)...);
 }
 

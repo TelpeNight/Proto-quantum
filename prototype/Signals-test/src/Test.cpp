@@ -40,6 +40,16 @@ static float overloadFunction(int a, int b) {
 }
 
 struct TestSuite {
+
+    //----------Context----------//
+    prototype::Slot<int ()> emptySlot;
+    prototype::Slot<int (int)> nonEmptySlot;
+    prototype::Slot<int (int)> deletedSlot;
+
+    std::shared_ptr<TestSuite> tempPtr;
+    std::weak_ptr<TestSuite> ptr;
+    //---------------------------//
+
 	virtual ~TestSuite(){}
 
 	typedef int (TestSuite::*MethodType)(int);
@@ -91,13 +101,18 @@ struct TestSuite {
 	    return a + b;
 	}
 
+	TestSuite() :
+	        nonEmptySlot(this, &TestSuite::notOverloadedMethodConst){}
+
+	/////////////////////////////////////////////////////////
+
 	void defaultConstructorTest() {
 	    using namespace prototype;
 	    Slot<int ()> slot;
 	    Slot<int ()> slot2(nullptr);
 	}
 
-	//TODO weak pointers to this
+//TODO reorganize tests' scope
 	void thisConstructorTest() {
 		using namespace prototype;
 
@@ -259,7 +274,6 @@ struct TestSuite {
 	    QU_STATIC_OTHER_OVERLOADSLOT(overload2_other, void (float), OverLoadedFunctor(), int (double));
 	}
 
-	//TODO scopePtr for object
 	void weakPointerConstructor() {
 	    typedef std::weak_ptr<TestSuite> ThisPtr;
 	    typedef std::shared_ptr<TestSuite> ShPtr;
@@ -384,10 +398,27 @@ struct TestSuite {
 	    Slot<void (int)> voidSlot(this, &TestSuite::notOverloadedMethodConst);
 	    voidSlot = thisSlot;
 	}
+
+	void invokeTest() {
+	    auto tempPtr = std::make_shared<TestSuite>();
+	    std::weak_ptr<TestSuite> weak = tempPtr;
+
+	    deletedSlot = {weak, &TestSuite::notOverloadedMethodConst};
+
+	    int res = nonEmptySlot(5);
+	    ASSERT_EQUAL(5, res);
+	    res = deletedSlot(6);
+	    ASSERT_EQUAL(6, res);
+
+	    tempPtr.reset();
+	    ASSERT_THROWS(deletedSlot(7), prototype::BadSlotInstancePointer*);
+	    ASSERT_THROWS(emptySlot(), prototype::EmptySlot*);
+	}
 };
 
 void nonThisConstructorTest() {
-    TestSuite* object = new TestSuite;
+    std::unique_ptr<TestSuite> objectHolder(new TestSuite);
+    auto object = objectHolder.get();
 
     QU_SLOT(object, nonConst, notOverloadedMethod);
     QU_SLOT(object, constSlot, notOverloadedMethodConst);
@@ -435,12 +466,11 @@ void nonThisConstructorTest() {
     ASSERT_THROWSM("Binding nullptr instance",
             prototype::Slot<int ()> nullSlot((TestSuite*)nullptr, &TestSuite::notOverloadedMethod),
             prototype::BadSlotInstancePointer*);
-
-    delete object;
 }
 
 void nonThisConstructorTestConst() {
-    const TestSuite* object = new TestSuite;
+    std::unique_ptr<TestSuite> objectHolder(new TestSuite);
+    const TestSuite* object = objectHolder.get();
 
     QU_SLOT(object, constSlot, notOverloadedMethodConst);
     QU_OTHERSLOT(object, otherConst, void (double), notOverloadedMethodConst);
@@ -474,8 +504,6 @@ void nonThisConstructorTestConst() {
     ASSERT_THROWSM("Binding nullptr instance",
             prototype::Slot<int ()> nullSlot((TestSuite*)nullptr, &TestSuite::notOverloadedMethod),
             prototype::BadSlotInstancePointer*);
-
-    delete object;
 }
 
 void staticSlotTest() {
@@ -523,7 +551,6 @@ void runConstructorTests(Runner& runner) {
     runner(s, "Signal constructor test");
 }
 
-//TODO organize test
 void runSuite(){
     cute::ide_listener lis;
     auto runner = cute::makeRunner(lis);
@@ -531,6 +558,7 @@ void runSuite(){
 
 	cute::suite s;
     s += CUTE_SMEMFUN(TestSuite, assignTest);
+    s += CUTE_SMEMFUN(TestSuite, invokeTest);
     runner(s, "SignalTest");
 }
 
