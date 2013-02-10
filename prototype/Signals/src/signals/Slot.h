@@ -41,9 +41,14 @@ public:
 template<typename FunctionSignature>
 class Slot;
 
+namespace SlotInternal {
+    struct SlotTag{};
+}
+
 template<typename ReturnType, typename ... ArgTypes>
 class Slot<ReturnType(ArgTypes...)> {
 public:
+    typedef SlotInternal::SlotTag Tag;
     typedef ReturnType (FunctionSignature)(ArgTypes...);
 
     struct TrueFunctor {
@@ -61,6 +66,7 @@ public:
     template<typename ComponentType>
     Slot(ComponentType* pComponent, ReturnType (ComponentType::*functor)(ArgTypes...));
 
+    //----------------Two functor constructors-------------------//
     template<
         typename Functor,
         EnableIf <
@@ -70,11 +76,26 @@ public:
         > = {},
         DisableIf<
             std::is_same<
-                RemoveRef<Functor>,
-                Slot<ReturnType(ArgTypes...)>
+                typename RemoveRef<Functor>::SlotTag,
+                SlotInternal::SlotTag
             >
         > = {}
     > Slot(Functor&& functor);
+
+    template<
+        typename Functor,
+        EnableIf <
+            std::is_class<
+                RemoveRef<Functor>
+            >
+        > = {},
+        DisableIf<
+            HasTag<
+                RemoveRef<Functor>
+            >
+        > = {}
+    > Slot(Functor&& functor);
+    //-----------------------------------------------------------//
 
     template<
         typename StaticFunction,
@@ -126,6 +147,22 @@ public:
         > = {}
     >Slot(SharedPtrType& sharedPtr, ReturnType (SharedPtrType::element_type::*method)(ArgTypes...));
 
+    template <
+        class OtherSlot,
+        EnableIf <
+            std::is_same <
+                typename OtherSlot::Tag,
+                SlotInternal::SlotTag
+            >
+        > = {},
+        DisableIf<
+            std::is_same<
+                RemoveRef<OtherSlot>,
+                Slot<ReturnType(ArgTypes...)>
+            >
+        > = {}
+    >Slot(const OtherSlot& other);
+
     Slot(const Slot& other);
     Slot(Slot&& other);
     Slot& operator=(const Slot&);
@@ -134,11 +171,11 @@ public:
     ReturnType operator()(ArgTypes&&... arguments);
     ReturnType invoke(ArgTypes&&... arguments);
 
-    bool operator==(const Slot& other);
-    bool operator!=(const Slot& other);
-    operator bool();
+    bool operator==(const Slot& other) const;
+    bool operator!=(const Slot& other) const;
+    operator bool() const;
 
-private:
+//private:
     std::function<FunctionSignature> _function;
     std::function<bool ()> _statusFunctor = TrueFunctor();
 };
@@ -165,11 +202,13 @@ bool operator!=(const Slot<Signature>& slot,std::nullptr_t) {
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(const Slot& other) :
-        _function(other._function) {}
+        _function(other._function),
+        _statusFunctor(other._statusFunctor){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(Slot&& other) :
-        _function(std::move(other._function)) {}
+        _function(std::move(other._function)),
+        _statusFunctor(std::move(other._statusFunctor)){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
@@ -360,8 +399,24 @@ template<typename Functor,
     >,
     DisableIf<
         std::is_same<
-            RemoveRef<Functor>,
-            Slot<ReturnType(ArgTypes...)>
+            typename RemoveRef<Functor>::SlotTag,
+            SlotInternal::SlotTag
+        >
+    >
+> Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
+    _function(std::forward<Functor>(functor))
+{}
+
+template<typename ReturnType, typename ... ArgTypes>
+template<typename Functor,
+    EnableIf <
+        std::is_class<
+            RemoveRef<Functor>
+        >
+    >,
+    DisableIf<
+        HasTag<
+            RemoveRef<Functor>
         >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
@@ -382,8 +437,28 @@ ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
 }
 
 template<typename ReturnType, typename ... ArgTypes>
-Slot<ReturnType(ArgTypes...)>::operator bool() {
+Slot<ReturnType(ArgTypes...)>::operator bool() const {
     return _function != nullptr && _statusFunctor();
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class OtherSlot,
+    EnableIf <
+        std::is_same <
+            typename OtherSlot::Tag,
+            SlotInternal::SlotTag
+        >
+    >,
+    DisableIf<
+        std::is_same<
+            RemoveRef<OtherSlot>,
+            Slot<ReturnType(ArgTypes...)>
+        >
+    >
+>Slot<ReturnType (ArgTypes...)>::Slot(const OtherSlot& other) {
+    _function = other._function;
+    _statusFunctor = other._statusFunctor;
 }
 
 } /* namespace prototype */

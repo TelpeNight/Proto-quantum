@@ -529,20 +529,91 @@ struct TestSuite {
     }
 
     void boolOperatorTest() {
+        //XXX bad test coverage
         ASSERT_EQUALM("Not empty slot", true, bool(nonEmptyInstanceSlot));
         ASSERT_EQUALM("Empty slot", false, bool(emptySlot));
         ASSERT_EQUALM("Not deleted instance slot", true, bool(deletedSlot));
+
+        prototype::Slot<int (int)> copiedNotDeletedSlot = deletedSlot;
+        ASSERT_EQUALM("Deleted instance slot", true, bool(copiedNotDeletedSlot));
+
+        prototype::Slot<void (int)> copiedNotDeletedSlot2 = deletedSlot;
+        ASSERT_EQUALM("Deleted instance slot", true, bool(copiedNotDeletedSlot2));
+
         tempPtr.reset();
-        ASSERT_EQUALM("Not deleted instance slot", false, bool(deletedSlot));
+        ASSERT_EQUALM("Deleted instance slot", false, bool(deletedSlot));
+
+        prototype::Slot<int (int)> copiedDeletedSlot = deletedSlot;
+        ASSERT_EQUALM("Deleted instance slot", false, bool(copiedDeletedSlot));
+
+        prototype::Slot<void (int)> copiedDeletedSlot2 = deletedSlot;
+        ASSERT_EQUALM("Deleted instance slot", false, bool(copiedDeletedSlot2));
+
+        ASSERT_EQUALM("Deleted instance slot", false, bool(copiedNotDeletedSlot));
+        ASSERT_EQUALM("Deleted instance slot", false, bool(copiedNotDeletedSlot2));
+    }
+
+    void nullptrComparisonTest() {
+        ASSERT_EQUAL(true, nonEmptyInstanceSlot != nullptr);
+        ASSERT_EQUAL(false, nonEmptyInstanceSlot == nullptr);
+        ASSERT_EQUAL(false, emptySlot != nullptr);
+        ASSERT_EQUAL(true, emptySlot == nullptr);
+        ASSERT_EQUAL(true, deletedSlot != nullptr);
+        ASSERT_EQUAL(false, deletedSlot == nullptr);
+
+        prototype::Slot<int (int)> copiedNotDeletedSlot = deletedSlot;
+        ASSERT_EQUAL(true, copiedNotDeletedSlot != nullptr);
+        ASSERT_EQUAL(false, copiedNotDeletedSlot == nullptr);
+
+        prototype::Slot<void (int)> copiedNotDeletedSlot2 = deletedSlot;
+        ASSERT_EQUAL(true, copiedNotDeletedSlot2 != nullptr);
+        ASSERT_EQUAL(false, copiedNotDeletedSlot2 == nullptr);
+
+        tempPtr.reset();
+        ASSERT_EQUAL(false, deletedSlot != nullptr);
+        ASSERT_EQUAL(true, deletedSlot == nullptr);
+
+        prototype::Slot<int (int)> copiedDeletedSlot = deletedSlot;
+        ASSERT_EQUAL(false, copiedDeletedSlot != nullptr);
+        ASSERT_EQUAL(true, copiedDeletedSlot == nullptr);
+
+        prototype::Slot<void (int)> copiedDeletedSlot2 = deletedSlot;
+        ASSERT_EQUAL(false, copiedDeletedSlot2 != nullptr);
+        ASSERT_EQUAL(true, copiedDeletedSlot2 == nullptr);
+
+        ASSERT_EQUALM("Deleted instance slot", false, copiedNotDeletedSlot != nullptr);
+        ASSERT_EQUALM("Deleted instance slot", true, copiedNotDeletedSlot == nullptr);
+        ASSERT_EQUALM("Deleted instance slot", false, nullptr != copiedNotDeletedSlot2);
+        ASSERT_EQUALM("Deleted instance slot", true, nullptr == copiedNotDeletedSlot2);
+    }
+
+    /* XXX
+     * Now slots has big problem with assigning and comparing
+     * When we assign slot to a slot with other signature
+     * we loose all type and corporation information.
+     * When we compare them, we cann't even say, that they are equal.
+     * std::function is completely not suitable for this goal.
+     * I will have to rewrite all internal implementation???
+     */
+
+    void comparisonTest() {
+        //compare 2x2 statics
+        //compare 2x2 functors
+        //compare 2x2 instance slots
+        //compare shared varait with simplae
+        //compare weal variant with simple
+        //compare weak with shared
+        //release shared, but keep pointer and compare with weak variant
+
+        //reassign some of then with other signature and test again
     }
 };
 
 
 template<class Runner>
-void runConstructorTests(Runner& runner) {
+void runConstructorTests(Runner&& runner) {
     cute::suite s;
 
-    //TODO copy constructor test
     s += CUTE_SMEMFUN(TestSuite, defaultConstructorTest);
     s += CUTE_SMEMFUN(TestClass, thisConstructorTest);
     s += CUTE_SMEMFUN(TestClass, thisConstructorTestConst);
@@ -567,6 +638,8 @@ void runSuite(){
     s += CUTE_SMEMFUN(TestSuite, assignTest);
     s += CUTE_SMEMFUN(TestSuite, invokeTest);
     s += CUTE_SMEMFUN(TestSuite, boolOperatorTest);
+    s += CUTE_SMEMFUN(TestSuite, nullptrComparisonTest);
+    s += CUTE_SMEMFUN(TestSuite, comparisonTest);
     runner(s, "SignalTest");
 }
 
