@@ -31,10 +31,10 @@ public:
     }
 };
 
-class EmptySlot: public std::invalid_argument {
+class EmptySlot: public std::logic_error {
 public:
     EmptySlot(const std::string& what = "") :
-            std::invalid_argument(what) {
+        std::logic_error(what) {
     }
 };
 
@@ -45,6 +45,12 @@ template<typename ReturnType, typename ... ArgTypes>
 class Slot<ReturnType(ArgTypes...)> {
 public:
     typedef ReturnType (FunctionSignature)(ArgTypes...);
+
+    struct TrueFunctor {
+        bool operator()() {
+            return true;
+        }
+    };
 
     Slot() {}
     Slot(std::nullptr_t) {}
@@ -86,7 +92,7 @@ public:
         typename MemberType,
         EnableIf <
             std::is_member_function_pointer<
-                decltype(&WeakPtrType::lock)
+                decltype(&WeakPtrType::expired)
             >
         > = {}
     >Slot(WeakPtrType& weakPtr, MemberType&& method);
@@ -95,7 +101,7 @@ public:
         class WeakPtrType,
         EnableIf <
             std::is_member_function_pointer<
-                decltype(&WeakPtrType::lock)
+                decltype(&WeakPtrType::expired)
             >
         > = {}
     >
@@ -134,6 +140,7 @@ public:
 
 private:
     std::function<FunctionSignature> _function;
+    std::function<bool ()> _statusFunctor = TrueFunctor();
 };
 
 template<typename Signature>
@@ -225,13 +232,45 @@ template <
     typename MemberType,
     EnableIf <
         std::is_member_function_pointer<
-            decltype(&WeakPtrType::lock)
+            decltype(&WeakPtrType::expired)
         >
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) {
-    auto sharedPtr = weakPtr.lock();
-    if (!sharedPtr) {
+    if (weakPtr.expired()) {
+        throw new BadSlotInstancePointer("Binding null instance pointer");
+    }
+    if (method == nullptr) {
+        throw new BadSlotFunctionPointer("Binding null method pointer");
+    }
+
+    _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
+        auto sharedPtr = weakPtr.lock();
+        if (!sharedPtr) {
+            throw new EmptySlot();
+        }
+        return static_cast<ReturnType>(
+                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+        );
+    };
+
+    _statusFunctor = [weakPtr]() -> bool {
+        return !weakPtr.expired();
+    };
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+template <
+    class WeakPtrType,
+    EnableIf <
+        std::is_member_function_pointer<
+            decltype(&WeakPtrType::expired)
+        >
+    >
+>
+Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
+                        ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) {
+    if (weakPtr.expired()) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
     }
     if (method == nullptr) {
@@ -247,35 +286,9 @@ Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) {
                 (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
         );
     };
-}
 
-template<typename ReturnType, typename ... ArgTypes>
-template <
-    class WeakPtrType,
-    EnableIf <
-        std::is_member_function_pointer<
-            decltype(&WeakPtrType::lock)
-        >
-    >
->
-Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
-                        ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) {
-    auto sharedPtr = weakPtr.lock();
-    if (!sharedPtr) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
-    }
-    if (method == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
-
-    _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
-        auto sharedPtr = weakPtr.lock();
-        if (!sharedPtr) {
-            throw new BadSlotInstancePointer("Binding null instance pointer");
-        }
-        return static_cast<ReturnType>(
-                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
-        );
+    _statusFunctor = [weakPtr]() -> bool {
+        return !weakPtr.expired();
     };
 }
 
@@ -366,6 +379,11 @@ ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
     return invoke(std::forward<ArgTypes>(arguments)...);
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+Slot<ReturnType(ArgTypes...)>::operator bool() {
+    return _function != nullptr && _statusFunctor();
 }
 
 } /* namespace prototype */

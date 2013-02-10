@@ -136,9 +136,6 @@ struct TestClass {
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), NonConstMethod);
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), ConstMethod);
 
-//      Slot<int (int)> copySlot(thisSlot);
-//      Slot<void (int)> voidCopySlot(thisSlot);
-//
         ASSERT_THROWSM("Binding nullptr member",
                 Slot<int (int)> nullSlot(this, (MethodType)NULL),
                 prototype::BadSlotFunctionPointer*);
@@ -230,7 +227,7 @@ struct TestSuite {
     TestClass::weak nullPtr;
 
     prototype::Slot<int ()> emptySlot;
-    prototype::Slot<int (int)> nonEmptySlot = {instance.get(),  &TestClass::notOverloadedMethodConst};
+    prototype::Slot<int (int)> nonEmptyInstanceSlot = {instance.get(),  &TestClass::notOverloadedMethodConst};
     prototype::Slot<int (int)> deletedSlot = {ptr, &TestClass::notOverloadedMethodConst};
     //---------------------------//
 
@@ -242,7 +239,6 @@ struct TestSuite {
 	    Slot<int ()> slot2(nullptr);
 	}
 
-//TODO reorganize tests' scope
 	void staticSlotTest() {
         QU_STATIC_SLOT(staticSLot, notOverloadedFunction);
         QU_STATIC_SLOT(staticSLotPtr, &notOverloadedFunction);
@@ -497,6 +493,14 @@ struct TestSuite {
         prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
     }
 
+    void copyConstructorTest() {
+        using namespace prototype;
+        Slot<int (int)> thisSlot(instance.get(), &TestClass::notOverloadedMethodConst);
+
+        Slot<int (int)> copySlot(thisSlot);
+        Slot<void (int)> voidCopySlot(thisSlot);
+    }
+
     void assignTest() {
         using namespace prototype;
         Functor foo;
@@ -514,14 +518,22 @@ struct TestSuite {
     }
 
     void invokeTest() {
-        int res = nonEmptySlot(5);
+        int res = nonEmptyInstanceSlot(5);
         ASSERT_EQUAL(5, res);
         res = deletedSlot(6);
         ASSERT_EQUAL(6, res);
 
         tempPtr.reset();
-        ASSERT_THROWS(deletedSlot(7), prototype::BadSlotInstancePointer*);
+        ASSERT_THROWS(deletedSlot(7), prototype::EmptySlot*);
         ASSERT_THROWS(emptySlot(), prototype::EmptySlot*);
+    }
+
+    void boolOperatorTest() {
+        ASSERT_EQUALM("Not empty slot", true, bool(nonEmptyInstanceSlot));
+        ASSERT_EQUALM("Empty slot", false, bool(emptySlot));
+        ASSERT_EQUALM("Not deleted instance slot", true, bool(deletedSlot));
+        tempPtr.reset();
+        ASSERT_EQUALM("Not deleted instance slot", false, bool(deletedSlot));
     }
 };
 
@@ -541,6 +553,7 @@ void runConstructorTests(Runner& runner) {
     s += CUTE_SMEMFUN(TestSuite, staticClassSlotTest);
     s += CUTE_SMEMFUN(TestSuite, functorConstructorTest);
     s += CUTE_SMEMFUN(TestSuite, weakPointerConstructor);
+    s += CUTE_SMEMFUN(TestSuite, copyConstructorTest);
 
     runner(s, "Signal constructor test");
 }
@@ -553,6 +566,7 @@ void runSuite(){
 	cute::suite s;
     s += CUTE_SMEMFUN(TestSuite, assignTest);
     s += CUTE_SMEMFUN(TestSuite, invokeTest);
+    s += CUTE_SMEMFUN(TestSuite, boolOperatorTest);
     runner(s, "SignalTest");
 }
 
