@@ -587,17 +587,29 @@ struct TestSuite {
         ASSERT_EQUALM("Deleted instance slot", true, nullptr == copiedNotDeletedSlot2);
     }
 
-    /* XXX
-     * Now slots has big problem with assigning and comparing
-     * When we assign slot to a slot with other signature
-     * we loose all type and corporation information.
-     * When we compare them, we cann't even say, that they are equal.
-     * std::function is completely not suitable for this goal.
-     * I will have to rewrite all internal implementation???
-     */
-
     void comparisonTest() {
-        //compare 2x2 statics
+        using namespace prototype;
+
+        //statics
+        QU_STATIC_SLOT(staticSLot, notOverloadedFunction);
+        QU_STATIC_SLOT(staticSLotPtr, &notOverloadedFunction);
+        QU_STATIC_OVERLOADSLOT(overload1, overloadFunction, float (int));
+        QU_STATIC_OVERLOADSLOT(overload1Ptr, &overloadFunction, float (int));
+        QU_STATIC_OTHER_OVERLOADSLOT(overload1Sig, void (int), overloadFunction, float (int));
+        ASSERT(staticSLot == staticSLotPtr);
+        ASSERT(overload1 == overload1Ptr);
+        ASSERT(overload1 == overload1Sig);
+        ASSERT(overload1Sig == overload1);
+        ASSERT(overload1Ptr == overload1Sig);
+        ASSERT(overload1Sig == overload1Ptr);
+        //ASSERT(staticSLot != overload1Ptr);
+        //ASSERT(overload1 != staticSLotPtr);
+
+        Slot<void (float)> copySlot = overload1;
+        //ASSERT(copySlot == overload1Ptr);
+        //ASSERT(overload1 == copySlot);
+        //ASSERT(copySlot != staticSLotPtr);
+
         //compare 2x2 functors
         //compare 2x2 instance slots
         //compare shared varait with simplae

@@ -10,6 +10,7 @@
 
 #include "Signature.h"
 #include "TemplateHelpers.h"
+#include "type_traits.h"
 
 #include <functional>
 #include <stdexcept>
@@ -43,6 +44,7 @@ class Slot;
 
 namespace SlotInternal {
     struct SlotTag{};
+    enum class Type : char {Object, Static, Member};
 }
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -171,13 +173,16 @@ public:
     ReturnType operator()(ArgTypes&&... arguments);
     ReturnType invoke(ArgTypes&&... arguments);
 
-    bool operator==(const Slot& other) const;
-    bool operator!=(const Slot& other) const;
+    //bool operator==(const Slot& other) const;
+    //bool operator!=(const Slot& other) const;
     operator bool() const;
+
+    bool equals(const Slot& other) const;
 
 //private:
     std::function<FunctionSignature> _function;
     std::function<bool ()> _statusFunctor = TrueFunctor();
+    SlotInternal::Type _type;
 };
 
 template<typename Signature>
@@ -200,37 +205,70 @@ bool operator!=(const Slot<Signature>& slot,std::nullptr_t) {
     return slot;
 }
 
+template<typename Signature1, typename Signature2,
+    EnableIf<
+        prototype::is_convertible<Slot<Signature1>, Slot<Signature2>>
+    > = {}
+>
+bool operator==(const Slot<Signature1>& slot1, const Slot<Signature2>& slot2) {
+    return slot2.equals(slot1);
+}
+
+template<typename Signature1, typename Signature2,
+    EnableIf<
+        prototype::is_convertible<Slot<Signature2>, Slot<Signature1>>
+    > = {},
+    DisableIf<
+        std::is_same<Slot<Signature1>, Slot<Signature2>>
+    > = {}
+>
+bool operator==(const Slot<Signature1>& slot1, const Slot<Signature2>& slot2) {
+    return slot1.equals(slot2);
+}
+
+template<typename Signature1, typename Signature2>
+bool operator!=(const Slot<Signature1>& slot1, const Slot<Signature2>& slot2) {
+    return !(slot1 == slot2);
+}
+
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(const Slot& other) :
         _function(other._function),
-        _statusFunctor(other._statusFunctor){}
+        _statusFunctor(other._statusFunctor),
+        _type(other._type){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(Slot&& other) :
         _function(std::move(other._function)),
-        _statusFunctor(std::move(other._statusFunctor)){}
+        _statusFunctor(std::move(other._statusFunctor)),
+        _type(other._type){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
 Slot<ReturnType(ArgTypes...)>::operator=(const Slot& other) {
     _function = other._function;
     return *this;
+    _type= other._type;
 }
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(FunctionSignature* function) :
-    _function(function){}
+    _function(function),
+    _type(SlotInternal::Type::Static){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
 Slot<ReturnType(ArgTypes...)>::operator=(Slot&& other) {
     _function = std::move(other._function);
+    _statusFunctor = std::move(other._statusFunctor);
+    _type = other._type;
     return *this;
 }
 
 template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType, typename MemberType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) {
+    _type = SlotInternal::Type::Member;
 
     if (pComponent == nullptr) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
@@ -250,6 +288,7 @@ template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent,
                                     ReturnType (ComponentType::*functor)(ArgTypes...)) {
+    _type = SlotInternal::Type::Member;
 
     if (pComponent == nullptr) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
@@ -276,6 +315,8 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) {
+    _type = SlotInternal::Type::Member;
+
     if (weakPtr.expired()) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
     }
@@ -309,6 +350,8 @@ template <
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
                         ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) {
+    _type = SlotInternal::Type::Member;
+
     if (weakPtr.expired()) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
     }
@@ -342,6 +385,8 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) {
+    _type = SlotInternal::Type::Member;
+
     if (!sharedPtr) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
     }
@@ -367,6 +412,8 @@ template <
 >
 Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr,
                         ReturnType (SharedPtrType::element_type::*method)(ArgTypes...)) {
+    _type = SlotInternal::Type::Member;
+
     if (!sharedPtr) {
         throw new BadSlotInstancePointer("Binding null instance pointer");
     }
@@ -387,7 +434,8 @@ template<typename StaticFunction,
         std::is_function<RemoveAll<StaticFunction> >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor) :
-    _function(std::forward<StaticFunction>(functor))
+    _function(std::forward<StaticFunction>(functor)),
+    _type(SlotInternal::Type::Static)
 {}
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -404,7 +452,8 @@ template<typename Functor,
         >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
-    _function(std::forward<Functor>(functor))
+    _function(std::forward<Functor>(functor)),
+    _type(SlotInternal::Type::Object)
 {}
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -420,7 +469,8 @@ template<typename Functor,
         >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
-    _function(std::forward<Functor>(functor))
+    _function(std::forward<Functor>(functor)),
+    _type(SlotInternal::Type::Object)
 {}
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -459,7 +509,26 @@ template <
 >Slot<ReturnType (ArgTypes...)>::Slot(const OtherSlot& other) {
     _function = other._function;
     _statusFunctor = other._statusFunctor;
+    _type = other._type;
 }
+
+template<typename ReturnType, typename ... ArgTypes>
+bool Slot<ReturnType (ArgTypes...)>::equals(const Slot& other) const {
+    if (_type != other._type) {
+        return false;
+    }
+    return true;
+}
+
+//template<typename ReturnType, typename ... ArgTypes>
+//bool Slot<ReturnType (ArgTypes...)>::operator==(const Slot& other) const {
+//    return equals(other);
+//}
+
+//template<typename ReturnType, typename ... ArgTypes>
+//bool Slot<ReturnType (ArgTypes...)>::operator!=(const Slot& other) const {
+//    return !equals(other);
+//}
 
 } /* namespace prototype */
 
