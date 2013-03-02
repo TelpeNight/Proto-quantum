@@ -1,8 +1,13 @@
+#include <memory>
+
 #include "cute.h"
 #include "ide_listener.h"
 #include "cute_runner.h"
 
 #include "signals/Slot.h"
+#include "ObjectID.h"
+#include "GameObject.h"
+
 
 typedef int (*FooType)(int);
 
@@ -294,15 +299,92 @@ void staticSlotTest() {
     prototype::Slot<int (int)> staticSlotNullPtr((FooType)nullptr);
 }
 
+
+/** testing GameObjectClass **/
+void testIdIdentification()
+{
+	typedef std::weak_ptr<ObjectID> ObjectIdPtr;
+	ObjectIdPtr id1;
+	ObjectIdPtr id2;
+	ObjectIdPtr id3;
+	auto temp = std::make_shared<ObjectID>();
+	auto temp2 = std::make_shared<ObjectID>();
+	auto temp3 = std::make_shared<ObjectID>();
+	id1 = temp;
+	id2 = temp2;
+	id3 = temp3;
+	ASSERT_EQUAL(1, (id1.lock())->getId());
+	ASSERT_EQUAL(2, (id2.lock())->getId());
+	ASSERT_EQUAL(3, (id3.lock())->getId());
+
+}
+
+void testGameObjectCreation()
+{
+	typedef std::weak_ptr<GameObject> ObjectPtr;
+	ObjectPtr ptr;
+	auto temp = (std::make_shared<GameObject>());
+	ptr = temp;
+	ASSERT(ptr.lock());
+	ASSERT((*ptr.lock()).getId());
+}
+
+void testGameObjectIdentification()
+{
+	typedef std::weak_ptr<GameObject> ObjectIdPtr;
+	ObjectIdPtr id1;
+	ObjectIdPtr id2;
+	ObjectIdPtr id3;
+	auto temp = std::make_shared<GameObject>();
+	auto temp2 = std::make_shared<GameObject>();
+	auto temp3 = std::make_shared<GameObject>();
+	id1 = temp;
+	id2 = temp2;
+	id3 = temp3;
+	ASSERT_EQUAL(5, (id1.lock())->getId()->getId());
+	ASSERT_EQUAL(6, (id2.lock())->getId()->getId());
+	ASSERT_EQUAL(7, (id3.lock())->getId()->getId());
+}
+
+void testManagementSystemObjectCreation()
+{
+	FAILM("not implemented");
+}
+
+void testManagementSystemObjectFind()
+{
+	FAILM("not implemented");
+}
+
+void testComponentStub()
+{
+	FAILM("not implemented");
+}
+
+void testManagementSystemIterator()
+{
+	FAILM("not implemented");
+}
+
+
+
+
 void runSuite(){
 	cute::suite s;
 
-	s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
+	/*s += CUTE_SMEMFUN(TestSuite, thisConstructorTest);
 	s += CUTE(nonThisConstructorTest);
 	s += CUTE_SMEMFUN(TestSuite, staticScopeSlotTest);
 	s += CUTE(staticSlotTest);
 	s += CUTE_SMEMFUN(TestSuite, staticSlotTest);
-	s += CUTE_SMEMFUN(TestSuite, assignTest);
+	s += CUTE_SMEMFUN(TestSuite, assignTest);*/
+	s += CUTE(testIdIdentification);
+	s += CUTE(testGameObjectCreation);
+	s += CUTE(testGameObjectIdentification);
+	s += CUTE(testManagementSystemObjectCreation);
+	s += CUTE(testManagementSystemObjectFind);
+	s += CUTE(testComponentStub);
+	s += CUTE(testManagementSystemIterator);
 
 	cute::ide_listener lis;
 	cute::makeRunner(lis)(s, "SignalTest");
@@ -310,6 +392,7 @@ void runSuite(){
 
 int main(){
     runSuite();
+	//testGameObjectIdentification();
     return 0;
 }
 
