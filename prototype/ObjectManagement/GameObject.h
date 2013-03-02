@@ -11,6 +11,8 @@
 #include <memory>
 #include <ObjectID.h>
 
+
+namespace prototype {
 /*
  * Class represents any of objects in game.
  * It works like container for components from different subsystems
@@ -27,5 +29,7 @@ public:
 private:
 	std::shared_ptr<ObjectID> objId = std::make_shared<ObjectID>();
 };
+
+}
 
 #endif /* GAMEOBJECT_H_ */

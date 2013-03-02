@@ -8,6 +8,8 @@
 #ifndef OBJECTID_H_
 #define OBJECTID_H_
 
+namespace prototype {
+
 /**
  * This class represents a set of information that identifies an object.
  * Now GameObject is identified by unic integer ID
@@ -24,8 +26,10 @@ public:
 	int getId();
 
 private:
-	static int currentId_;
-	int objectId_;
+	static int _currentId;
+	int _objectId;
 };
+
+}
 
 #endif /* OBJECTID_H_ */

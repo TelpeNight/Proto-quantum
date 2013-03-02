@@ -7,6 +7,8 @@
 
 #include "GameObject.h"
 
+namespace prototype {
+
 GameObject::GameObject() {
 	// TODO Auto-generated constructor stub
 
@@ -19,5 +21,7 @@ GameObject::~GameObject() {
 std::shared_ptr<ObjectID> GameObject::getId()
 {
 	return objId;
+}
+
 }
 

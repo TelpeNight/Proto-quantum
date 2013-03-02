@@ -8,11 +8,15 @@
 #ifndef OBJECTMANAGEMENTSYSTEM_H_
 #define OBJECTMANAGEMENTSYSTEM_H_
 
+namespace prototype {
 
 class ObjectManagementSystem {
 public:
 	ObjectManagementSystem();
 	virtual ~ObjectManagementSystem();
 };
+
+
+}
 
 #endif

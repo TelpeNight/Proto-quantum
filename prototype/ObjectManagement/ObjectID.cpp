@@ -7,12 +7,14 @@
 
 #include "ObjectID.h"
 
-int ObjectID::currentId_ = 0;
+namespace prototype {
+
+int ObjectID::_currentId = 0;
 
 ObjectID::ObjectID() {
 	//get new numeric identifier and assign it to the instance
-	currentId_ ++;
-	objectId_ = currentId_;
+	_currentId ++;
+	_objectId = _currentId;
 
 
 }
@@ -22,6 +24,7 @@ ObjectID::~ObjectID() {
 }
 
 int ObjectID::getId() {
-	return objectId_;
+	return _objectId;
 }
 
+}

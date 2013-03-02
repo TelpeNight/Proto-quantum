@@ -7,7 +7,7 @@
 
 #include "ObjectManagementSystem.h"
 
-namespace Prototype {
+namespace prototype {
 
 ObjectManagementSystem::ObjectManagementSystem() {
 	// TODO Auto-generated constructor stub
@@ -18,4 +18,4 @@ ObjectManagementSystem::~ObjectManagementSystem() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace Prototype */
+}

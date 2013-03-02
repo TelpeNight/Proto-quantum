@@ -7,6 +7,7 @@
 #include "signals/Slot.h"
 #include "ObjectID.h"
 #include "GameObject.h"
+using namespace prototype;
 
 
 typedef int (*FooType)(int);
