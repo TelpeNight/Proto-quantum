@@ -41,7 +41,7 @@ template <typename... Condition>
 using EnableIfAll = Invoke<
         std::enable_if<
             All<Condition...>::value,
-            detail::enabler
+            int
         >
 >;
 
@@ -49,7 +49,7 @@ template<typename... Condition>
 using DisableIfAll = Invoke<
         std::enable_if<
             !All<Condition...>::value,
-            detail::enabler
+            int
         >
 >;
 
@@ -57,7 +57,7 @@ template <typename... Condition>
 using EnableIfOne = Invoke<
         std::enable_if<
             One<Condition...>::value,
-            detail::enabler
+            int
         >
 >;
 
@@ -65,7 +65,7 @@ template<typename... Condition>
 using DisableIfOne = Invoke<
         std::enable_if<
             !One<Condition...>::value,
-            detail::enabler
+            int
         >
 >;
 

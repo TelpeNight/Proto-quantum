@@ -597,13 +597,19 @@ struct TestSuite {
         QU_STATIC_OVERLOADSLOT(overload1Ptr, &overloadFunction, float (int));
         QU_STATIC_OTHER_OVERLOADSLOT(overload1Sig, void (int), overloadFunction, float (int));
         ASSERT(staticSLot == staticSLotPtr);
+        ASSERT_EQUAL(false, staticSLot != staticSLotPtr);
         ASSERT(overload1 == overload1Ptr);
+        ASSERT_EQUAL(false, overload1 != overload1Ptr);
         ASSERT(overload1 == overload1Sig);
+        ASSERT_EQUAL(false, overload1 != overload1Sig);
         ASSERT(overload1Sig == overload1);
+        ASSERT_EQUAL(false, overload1Sig != overload1);
         ASSERT(overload1Ptr == overload1Sig);
+        ASSERT_EQUAL(false, overload1Ptr != overload1Sig);
         ASSERT(overload1Sig == overload1Ptr);
-        //ASSERT(staticSLot != overload1Ptr);
-        //ASSERT(overload1 != staticSLotPtr);
+        ASSERT_EQUAL(false, overload1Sig != overload1Ptr);
+        ASSERT(staticSLot != overload1Ptr);
+        ASSERT(overload1 != staticSLotPtr);
 
         Slot<void (float)> copySlot = overload1;
         //ASSERT(copySlot == overload1Ptr);
@@ -618,6 +624,7 @@ struct TestSuite {
         //release shared, but keep pointer and compare with weak variant
 
         //reassign some of then with other signature and test again
+        //empty slots should be equal
     }
 };
 

@@ -10,11 +10,11 @@
 
 #include "Signature.h"
 #include "TemplateHelpers.h"
-#include "type_traits.h"
 
 #include <functional>
 #include <stdexcept>
 #include <type_traits>
+#include <assert.h>
 
 namespace prototype {
 
@@ -44,7 +44,7 @@ class Slot;
 
 namespace SlotInternal {
     struct SlotTag{};
-    enum class Type : char {Object, Static, Member};
+    enum class Type : char {NON, Object, Static, Member};
 }
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -59,8 +59,8 @@ public:
         }
     };
 
-    Slot() {}
-    Slot(std::nullptr_t) {}
+    constexpr Slot() {}
+    constexpr Slot(std::nullptr_t) {}
 
     template<typename ComponentType, typename MemberType>
     Slot(ComponentType* pComponent, MemberType&& functor);
@@ -75,13 +75,13 @@ public:
             std::is_class<
                 RemoveRef<Functor>
             >
-        > = {},
+        > = 0,
         DisableIf<
             std::is_same<
                 typename RemoveRef<Functor>::SlotTag,
                 SlotInternal::SlotTag
             >
-        > = {}
+        > = 0
     > Slot(Functor&& functor);
 
     template<
@@ -90,12 +90,12 @@ public:
             std::is_class<
                 RemoveRef<Functor>
             >
-        > = {},
+        > = 0,
         DisableIf<
             HasTag<
                 RemoveRef<Functor>
             >
-        > = {}
+        > = 0
     > Slot(Functor&& functor);
     //-----------------------------------------------------------//
 
@@ -105,7 +105,7 @@ public:
             std::is_function<
                 RemoveAll<StaticFunction>
             >
-        > = {}
+        > = 0
     >Slot(StaticFunction&& functor);
 
     Slot(FunctionSignature* function);
@@ -117,7 +117,7 @@ public:
             std::is_member_function_pointer<
                 decltype(&WeakPtrType::expired)
             >
-        > = {}
+        > = 0
     >Slot(WeakPtrType& weakPtr, MemberType&& method);
 
     template <
@@ -126,7 +126,7 @@ public:
             std::is_member_function_pointer<
                 decltype(&WeakPtrType::expired)
             >
-        > = {}
+        > = 0
     >
     Slot(WeakPtrType& weakPtr, ReturnType (WeakPtrType::element_type::*method)(ArgTypes...));
 
@@ -137,7 +137,7 @@ public:
             std::is_member_function_pointer<
                 decltype(&SharedPtrType::get)
             >
-        > = {}
+        > = 0
     >Slot(SharedPtrType& sharedPtr, MemberType&& method);
 
     template <
@@ -146,7 +146,7 @@ public:
             std::is_member_function_pointer<
                 decltype(&SharedPtrType::get)
             >
-        > = {}
+        > = 0
     >Slot(SharedPtrType& sharedPtr, ReturnType (SharedPtrType::element_type::*method)(ArgTypes...));
 
     template <
@@ -156,13 +156,13 @@ public:
                 typename OtherSlot::Tag,
                 SlotInternal::SlotTag
             >
-        > = {},
+        > = 0,
         DisableIf<
             std::is_same<
                 RemoveRef<OtherSlot>,
                 Slot<ReturnType(ArgTypes...)>
             >
-        > = {}
+        > = 0
     >Slot(const OtherSlot& other);
 
     Slot(const Slot& other);
@@ -175,55 +175,60 @@ public:
 
     //bool operator==(const Slot& other) const;
     //bool operator!=(const Slot& other) const;
-    operator bool() const;
-
-    bool equals(const Slot& other) const;
+    explicit operator bool() const;
 
 //private:
+    typedef std::pair<void*,void*> comparisonType;
+
     std::function<FunctionSignature> _function;
     std::function<bool ()> _statusFunctor = TrueFunctor();
-    SlotInternal::Type _type;
+    SlotInternal::Type _type = SlotInternal::Type::NON;
+    comparisonType _comparison;
+
+    template<typename OtherSlot>
+    bool _equals(const OtherSlot& other) const {
+        if (!bool(*this) && !bool(other)) {
+            return true;
+        }
+
+        if (_type != other._type) {
+            return false;
+        }
+        assert(_type != SlotInternal::Type::NON);
+
+        //TODO provide object comparison
+        if (_type == SlotInternal::Type::Object) {
+            return false;
+        }
+
+        return _comparison.first == other._comparison.first
+               && _comparison.second == other._comparison.second;
+    }
 };
 
 template<typename Signature>
 bool operator==(std::nullptr_t, const Slot<Signature>& slot) {
-    return !slot;
+    return !bool(slot);
 }
 
 template<typename Signature>
 bool operator==(const Slot<Signature>& slot,std::nullptr_t) {
-    return !slot;
+    return !bool(slot);
 }
 
 template<typename Signature>
 bool operator!=(std::nullptr_t, const Slot<Signature>& slot) {
-    return slot;
+    return bool(slot);
 }
 
 template<typename Signature>
 bool operator!=(const Slot<Signature>& slot,std::nullptr_t) {
-    return slot;
+    return bool(slot);
 }
 
-template<typename Signature1, typename Signature2,
-    EnableIf<
-        prototype::is_convertible<Slot<Signature1>, Slot<Signature2>>
-    > = {}
->
+template<typename Signature1, typename Signature2>
 bool operator==(const Slot<Signature1>& slot1, const Slot<Signature2>& slot2) {
-    return slot2.equals(slot1);
-}
-
-template<typename Signature1, typename Signature2,
-    EnableIf<
-        prototype::is_convertible<Slot<Signature2>, Slot<Signature1>>
-    > = {},
-    DisableIf<
-        std::is_same<Slot<Signature1>, Slot<Signature2>>
-    > = {}
->
-bool operator==(const Slot<Signature1>& slot1, const Slot<Signature2>& slot2) {
-    return slot1.equals(slot2);
+    return slot1._equals(slot2);
 }
 
 template<typename Signature1, typename Signature2>
@@ -235,26 +240,25 @@ template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(const Slot& other) :
         _function(other._function),
         _statusFunctor(other._statusFunctor),
-        _type(other._type){}
+        _type(other._type),
+        _comparison(other._comparison){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(Slot&& other) :
         _function(std::move(other._function)),
         _statusFunctor(std::move(other._statusFunctor)),
-        _type(other._type){}
+        _type(other._type),
+        _comparison(std::move(other._comparison)){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
 Slot<ReturnType(ArgTypes...)>::operator=(const Slot& other) {
     _function = other._function;
-    return *this;
     _type= other._type;
+    _statusFunctor = other._statusFunctor;
+    _comparison = other._comparison;
+    return *this;
 }
-
-template<typename ReturnType, typename ... ArgTypes>
-Slot<ReturnType(ArgTypes...)>::Slot(FunctionSignature* function) :
-    _function(function),
-    _type(SlotInternal::Type::Static){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
@@ -262,12 +266,21 @@ Slot<ReturnType(ArgTypes...)>::operator=(Slot&& other) {
     _function = std::move(other._function);
     _statusFunctor = std::move(other._statusFunctor);
     _type = other._type;
+    _comparison = std::move(other._comparison);
     return *this;
 }
 
 template<typename ReturnType, typename ... ArgTypes>
+Slot<ReturnType(ArgTypes...)>::Slot(FunctionSignature* function) :
+    _function(function),
+    _type(SlotInternal::Type::Static),
+    _comparison((void*)NULL, (void*)function){}
+
+template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType, typename MemberType>
-Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) {
+Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) :
+        _comparison((void*)pComponent,
+                     reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))){
     _type = SlotInternal::Type::Member;
 
     if (pComponent == nullptr) {
@@ -287,7 +300,9 @@ Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& func
 template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent,
-                                    ReturnType (ComponentType::*functor)(ArgTypes...)) {
+                                    ReturnType (ComponentType::*functor)(ArgTypes...)) :
+        _comparison((void*)pComponent,
+                     reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))){
     _type = SlotInternal::Type::Member;
 
     if (pComponent == nullptr) {
@@ -314,11 +329,13 @@ template <
         >
     >
 >
-Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) {
+Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) :
+        _comparison((void*)weakPtr.lock().get(),
+                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
     _type = SlotInternal::Type::Member;
 
     if (weakPtr.expired()) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
+        throw new BadSlotInstancePointer("Binding null instance pointer");  //XXX bad!!! should constructs empty slot instead!
     }
     if (method == nullptr) {
         throw new BadSlotFunctionPointer("Binding null method pointer");
@@ -349,7 +366,9 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
-                        ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) {
+                        ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) :
+        _comparison((void*)weakPtr.lock().get(),
+                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
     _type = SlotInternal::Type::Member;
 
     if (weakPtr.expired()) {
@@ -384,7 +403,9 @@ template <
         >
     >
 >
-Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) {
+Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) :
+        _comparison((void*)sharedPtr.get(),
+                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
     _type = SlotInternal::Type::Member;
 
     if (!sharedPtr) {
@@ -411,7 +432,9 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr,
-                        ReturnType (SharedPtrType::element_type::*method)(ArgTypes...)) {
+                        ReturnType (SharedPtrType::element_type::*method)(ArgTypes...)) :
+        _comparison((void*)sharedPtr.get(),
+                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
     _type = SlotInternal::Type::Member;
 
     if (!sharedPtr) {
@@ -435,7 +458,8 @@ template<typename StaticFunction,
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor) :
     _function(std::forward<StaticFunction>(functor)),
-    _type(SlotInternal::Type::Static)
+    _type(SlotInternal::Type::Static),
+    _comparison(NULL, (void*)functor)
 {}
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -511,24 +535,6 @@ template <
     _statusFunctor = other._statusFunctor;
     _type = other._type;
 }
-
-template<typename ReturnType, typename ... ArgTypes>
-bool Slot<ReturnType (ArgTypes...)>::equals(const Slot& other) const {
-    if (_type != other._type) {
-        return false;
-    }
-    return true;
-}
-
-//template<typename ReturnType, typename ... ArgTypes>
-//bool Slot<ReturnType (ArgTypes...)>::operator==(const Slot& other) const {
-//    return equals(other);
-//}
-
-//template<typename ReturnType, typename ... ArgTypes>
-//bool Slot<ReturnType (ArgTypes...)>::operator!=(const Slot& other) const {
-//    return !equals(other);
-//}
 
 } /* namespace prototype */
 
