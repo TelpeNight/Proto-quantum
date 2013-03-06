@@ -5,22 +5,39 @@
  *      Author: gluk
  */
 
+#include <algorithm>
 #include "GameObject.h"
 
 namespace prototype {
 
-GameObject::GameObject() {
-	// TODO Auto-generated constructor stub
+int GameObject::_currentId = 0;
 
+GameObject::GameObject() {
+	_currentId++;
+	objId.objecttId = _currentId;
 }
 
 GameObject::~GameObject() {
-	// TODO Auto-generated destructor stub
 }
 
-std::shared_ptr<ObjectID> GameObject::getId()
+const ObjectId& GameObject::getId()
 {
 	return objId;
+}
+
+void GameObject::addComponent(Component &comp) {
+	components.push_back(comp);
+}
+
+
+bool GameObject::containsSubsystemComponent(std::string subsystem) {
+	//TODO change the implementation
+	std::list<Component>::iterator it;
+	for (it=components.begin(); it!=components.end(); ++it) {
+		if ((*it).getId().subsystemStrId == subsystem)
+			return true;
+	}
+	return false;
 }
 
 }

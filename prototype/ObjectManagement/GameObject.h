@@ -8,11 +8,19 @@
 #ifndef GAMEOBJECT_H_
 #define GAMEOBJECT_H_
 
-#include <memory>
-#include <ObjectID.h>
-
+#include <list>
+#include "Component.h"
 
 namespace prototype {
+
+/**
+ *  Structure discribes ways of object identification
+ */
+struct ObjectId
+{
+	int objecttId;	//identification by unic numeric id
+};
+
 /*
  * Class represents any of objects in game.
  * It works like container for components from different subsystems
@@ -23,11 +31,23 @@ class GameObject {
 public:
 	GameObject();
 	virtual ~GameObject();
-
-	std::shared_ptr<ObjectID> getId();
+	/**
+	 * return reference to object identificator
+	 */
+	const ObjectId& getId();
+	/**
+	 * Attaches component comp to this object
+	 */
+	void addComponent(Component &comp);
+	/**
+	 * Checks, if this game object contains component of subsystem
+	 */
+	bool containsSubsystemComponent(std::string subsystem);
 
 private:
-	std::shared_ptr<ObjectID> objId = std::make_shared<ObjectID>();
+	static int _currentId;
+	ObjectId objId;
+	std::list<Component> components;
 };
 
 }
