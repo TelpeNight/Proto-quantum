@@ -164,6 +164,25 @@ public:
 
     template<typename OtherSlot>
     bool _equals(const OtherSlot& other) const {
+        if (!bool(*this) && !bool(other)) {
+            return true;
+        }
+
+        if (_type != other._type) {
+            return false;
+        }
+        assert(_type != SlotInternal::Type::NON);
+
+        //TODO provide object comparison
+        if (_type == SlotInternal::Type::Object) {
+            return false;
+        }
+
+        return _comparison.first == other._comparison.first
+               && _comparison.second == other._comparison.second;
+    }
+
+    bool _equals(const Slot& other) const {
         if (this == &other) {
             return true;
         }

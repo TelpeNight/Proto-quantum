@@ -551,6 +551,34 @@ struct TestSuite {
         ASSERT(copySlot != staticSLotPtr);
 
         //compare 2x2 instance slots
+        auto object = instance.get();
+        QU_OTHERSLOT(object, complexOther1a, double (int), overloadedMethod);
+        QU_OTHERSLOT(object, complexOther2a, double (int, double), overloadedMethod);
+        QU_OTHER_OVERLOADSLOT(object, complexOther1b, double (float), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(object, complexOther2b, double (int, int), overloadedMethod, double (int, double));
+        ASSERT(complexOther1a == complexOther1b);
+        ASSERT(complexOther1b == complexOther1a);
+        ASSERT(complexOther2a == complexOther2b);
+        ASSERT(complexOther2b == complexOther2a);
+        ASSERT(complexOther2a == complexOther2a);
+        ASSERT(complexOther1a != complexOther2b);
+        ASSERT(complexOther1b != complexOther2a);
+        ASSERT(complexOther2a != complexOther1b);
+        ASSERT(complexOther2b != complexOther1a);
+        ASSERT(complexOther2a != complexOther1a);
+        ASSERT(complexOther2b != complexOther1b);
+
+        ASSERT_EQUAL(false, complexOther1a != complexOther1b);
+        ASSERT_EQUAL(false, complexOther1b != complexOther1a);
+        ASSERT_EQUAL(false, complexOther2a != complexOther2b);
+        ASSERT_EQUAL(false, complexOther2b != complexOther2a);
+        ASSERT_EQUAL(false, complexOther2a != complexOther2a);
+        ASSERT_EQUAL(false, complexOther1a == complexOther2b);
+        ASSERT_EQUAL(false, complexOther1b == complexOther2a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther1b);
+        ASSERT_EQUAL(false, complexOther2b == complexOther1a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther1a);
+        ASSERT_EQUAL(false, complexOther2b == complexOther1b);
         //compare 2x2 functors
         //compare shared variant with simple
         //compare weak variant with simple
@@ -564,7 +592,7 @@ struct TestSuite {
 
 
 template<class Runner>
-void runConstructorTests(Runner&& runner) {
+void runConstructorTests(Runner& runner) {
     cute::suite s;
 
     s += CUTE_SMEMFUN(TestSuite, defaultConstructorTest);
