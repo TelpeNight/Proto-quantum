@@ -4,8 +4,9 @@
 
 #include "signals/Slot.h"
 #include "signals/SlotShortcuts.h"
-#include <memory>
 #include "utils/make_unique.h"
+
+#include <memory>
 
 typedef int (*FooType)(int);
 
@@ -135,20 +136,6 @@ struct TestClass {
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), NonConstMethod);
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), ConstMethod);
-
-        ASSERT_THROWSM("Binding nullptr member",
-                Slot<int (int)> nullSlot(this, (MethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                Slot<int (int)> nullSlot(this, (MethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                Slot<int ()> nullSlot((TestClass*)NULL, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                Slot<int ()> nullSlot((TestClass*)nullptr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
     }
 
     void thisConstructorTestConst() const {
@@ -174,20 +161,6 @@ struct TestClass {
         //QU_THIS_OTHER_OVERLOADSLOT(other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         //QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), NonConstMethod);
         QU_THIS_OTHER_OVERLOADSLOT(other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), ConstMethod);
-
-        ASSERT_THROWSM("Binding nullptr member",
-                Slot<int (int)> nullSlot(this, (ConstMethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                Slot<int (int)> nullSlot(this, (ConstMethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                Slot<int ()> nullSlot((TestClass*)NULL, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                Slot<int ()> nullSlot((TestClass*)nullptr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
     }
 
 
@@ -312,20 +285,6 @@ struct TestSuite {
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
-
-        ASSERT_THROWSM("Binding NULL member",
-                prototype::Slot<int (int)> nullSlot(ptr, (TestClass::MethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                prototype::Slot<int (int)> nullSlot2(ptr, (TestClass::MethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot(nullPtr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot(nullPtr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
 	}
 
 	void sharedPointerConstructor() {
@@ -362,20 +321,6 @@ struct TestSuite {
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
         QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
-
-        ASSERT_THROWSM("Binding NULL member",
-                prototype::Slot<int (int)> nullSlot(ptr, (TestClass::MethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                prototype::Slot<int (int)> nullSlot2(ptr, (TestClass::MethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot(nullPtr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot(nullPtr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
     }
 
 	void nonThisConstructorTest() {
@@ -413,20 +358,6 @@ struct TestSuite {
         QU_OTHER_OVERLOADSLOT(object, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         QU_OTHER_OVERLOADSLOT(object, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
         QU_OTHER_OVERLOADSLOT(object, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
-
-        ASSERT_THROWSM("Binding NULL member",
-                prototype::Slot<int (int)> nullSlot(object, (TestClass::MethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                prototype::Slot<int (int)> nullSlot2(object, (TestClass::MethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot((TestClass*)NULL, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot((TestClass*)nullptr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
     }
 
     void nonThisConstructorTestConst() {
@@ -450,20 +381,6 @@ struct TestSuite {
         //QU_OTHER_OVERLOADSLOT(object, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
         //QU_OTHER_OVERLOADSLOT(object, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
         QU_OTHER_OVERLOADSLOT(object, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
-
-        ASSERT_THROWSM("Binding NULL member",
-                prototype::Slot<int (int)> nullSlot(object, (TestClass::ConstMethodType)NULL),
-                prototype::BadSlotFunctionPointer*);
-        ASSERT_THROWSM("Binding nullptr member",
-                prototype::Slot<int (int)> nullSlot2(object, (TestClass::ConstMethodType)nullptr),
-                prototype::BadSlotFunctionPointer*);
-
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot((TestClass*)NULL, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
-        ASSERT_THROWSM("Binding nullptr instance",
-                prototype::Slot<int ()> nullSlot((TestClass*)nullptr, &TestClass::notOverloadedMethod),
-                prototype::BadSlotInstancePointer*);
     }
 
     void staticClassSlotTest() {
@@ -515,6 +432,7 @@ struct TestSuite {
 
         Slot<void (int)> voidSlot(instance.get(), &TestClass::notOverloadedMethodConst);
         voidSlot = thisSlot;
+        voidSlot = nullptr;
     }
 
     void invokeTest() {
@@ -524,8 +442,8 @@ struct TestSuite {
         ASSERT_EQUAL(6, res);
 
         tempPtr.reset();
-        ASSERT_THROWS(deletedSlot(7), prototype::EmptySlot*);
-        ASSERT_THROWS(emptySlot(), prototype::EmptySlot*);
+        ASSERT_THROWS(deletedSlot(7), std::bad_function_call*);
+        ASSERT_THROWS(emptySlot(), std::bad_function_call*);
     }
 
     void boolOperatorTest() {
@@ -551,6 +469,22 @@ struct TestSuite {
 
         ASSERT_EQUALM("Deleted instance slot", false, bool(copiedNotDeletedSlot));
         ASSERT_EQUALM("Deleted instance slot", false, bool(copiedNotDeletedSlot2));
+
+        nonEmptyInstanceSlot = nullptr;
+        ASSERT_EQUALM("Nullified slot", false, bool(nonEmptyInstanceSlot));
+
+        prototype::Slot<int (int)> nullSlot1(instance.get(), (TestClass::MethodType)NULL);
+        prototype::Slot<int (int)> nullSlot2(instance.get(), (TestClass::MethodType)nullptr);
+        prototype::Slot<int ()> nullSlot3((TestClass*)NULL, &TestClass::notOverloadedMethod);
+        prototype::Slot<int ()> nullSlot4((TestClass*)nullptr, &TestClass::notOverloadedMethod);
+        prototype::Slot<int ()> nullSlot5(tempPtr, &TestClass::notOverloadedMethod);
+        prototype::Slot<int ()> nullSlot6(nullPtr, &TestClass::notOverloadedMethod);
+        ASSERT(!bool(nullSlot1));
+        ASSERT(!bool(nullSlot2));
+        ASSERT(!bool(nullSlot3));
+        ASSERT(!bool(nullSlot4));
+        ASSERT(!bool(nullSlot5));
+        ASSERT(!bool(nullSlot6));
     }
 
     void nullptrComparisonTest() {
@@ -612,14 +546,14 @@ struct TestSuite {
         ASSERT(overload1 != staticSLotPtr);
 
         Slot<void (float)> copySlot = overload1;
-        //ASSERT(copySlot == overload1Ptr);
-        //ASSERT(overload1 == copySlot);
-        //ASSERT(copySlot != staticSLotPtr);
+        ASSERT(copySlot == overload1Ptr);
+        ASSERT(overload1 == copySlot);
+        ASSERT(copySlot != staticSLotPtr);
 
-        //compare 2x2 functors
         //compare 2x2 instance slots
-        //compare shared varait with simplae
-        //compare weal variant with simple
+        //compare 2x2 functors
+        //compare shared variant with simple
+        //compare weak variant with simple
         //compare weak with shared
         //release shared, but keep pointer and compare with weak variant
 

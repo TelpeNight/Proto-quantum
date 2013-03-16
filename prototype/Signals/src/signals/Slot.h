@@ -14,30 +14,9 @@
 #include <functional>
 #include <stdexcept>
 #include <type_traits>
-#include <assert.h>
+#include <cassert>
 
 namespace prototype {
-
-class BadSlotFunctionPointer: public std::invalid_argument {
-public:
-    BadSlotFunctionPointer(const std::string& what = "") :
-            std::invalid_argument(what) {
-    }
-};
-
-class BadSlotInstancePointer: public std::invalid_argument {
-public:
-    BadSlotInstancePointer(const std::string& what = "") :
-            std::invalid_argument(what) {
-    }
-};
-
-class EmptySlot: public std::logic_error {
-public:
-    EmptySlot(const std::string& what = "") :
-        std::logic_error(what) {
-    }
-};
 
 template<typename FunctionSignature>
 class Slot;
@@ -173,20 +152,21 @@ public:
     ReturnType operator()(ArgTypes&&... arguments);
     ReturnType invoke(ArgTypes&&... arguments);
 
-    //bool operator==(const Slot& other) const;
-    //bool operator!=(const Slot& other) const;
     explicit operator bool() const;
 
 //private:
-    typedef std::pair<void*,void*> comparisonType;
+    typedef std::pair<void*,void*> ComparisonType;
 
     std::function<FunctionSignature> _function;
     std::function<bool ()> _statusFunctor = TrueFunctor();
     SlotInternal::Type _type = SlotInternal::Type::NON;
-    comparisonType _comparison;
+    ComparisonType _comparison;
 
     template<typename OtherSlot>
     bool _equals(const OtherSlot& other) const {
+        if (this == &other) {
+            return true;
+        }
         if (!bool(*this) && !bool(other)) {
             return true;
         }
@@ -253,20 +233,24 @@ Slot<ReturnType(ArgTypes...)>::Slot(Slot&& other) :
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
 Slot<ReturnType(ArgTypes...)>::operator=(const Slot& other) {
-    _function = other._function;
-    _type= other._type;
-    _statusFunctor = other._statusFunctor;
-    _comparison = other._comparison;
+    if (this != &other) {
+        _function = other._function;
+        _type= other._type;
+        _statusFunctor = other._statusFunctor;
+        _comparison = other._comparison;
+    }
     return *this;
 }
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
 Slot<ReturnType(ArgTypes...)>::operator=(Slot&& other) {
-    _function = std::move(other._function);
-    _statusFunctor = std::move(other._statusFunctor);
-    _type = other._type;
-    _comparison = std::move(other._comparison);
+    if (this != &other) {
+        _function = std::move(other._function);
+        _statusFunctor = std::move(other._statusFunctor);
+        _type = other._type;
+        _comparison = std::move(other._comparison);
+    }
     return *this;
 }
 
@@ -279,16 +263,16 @@ Slot<ReturnType(ArgTypes...)>::Slot(FunctionSignature* function) :
 template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType, typename MemberType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) :
-        _comparison((void*)pComponent,
-                     reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))){
-    _type = SlotInternal::Type::Member;
-
-    if (pComponent == nullptr) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
+        Slot(){
+    if (pComponent == nullptr || functor == nullptr) {
+         return;
     }
-    if (functor == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-	}
+
+    _comparison = ComparisonType{
+        (void*)(pComponent),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))
+    };
+    _type = SlotInternal::Type::Member;
 
 	_function = [pComponent, functor](ArgTypes&&... args) -> ReturnType {
 		return static_cast<ReturnType>(
@@ -301,16 +285,16 @@ template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType>
 Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent,
                                     ReturnType (ComponentType::*functor)(ArgTypes...)) :
-        _comparison((void*)pComponent,
-                     reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))){
-    _type = SlotInternal::Type::Member;
+        Slot(){
+    if (pComponent == nullptr || functor == nullptr) {
+        return;
+    }
 
-    if (pComponent == nullptr) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
-    }
-    if (functor == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
+    _type = SlotInternal::Type::Member;
+    _comparison = ComparisonType{
+        (void*)(pComponent),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&functor))
+    };
 
     _function = [pComponent, functor](ArgTypes&&... args) -> ReturnType {
         return static_cast<ReturnType>(
@@ -330,21 +314,21 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) :
-        _comparison((void*)weakPtr.lock().get(),
-                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
-    _type = SlotInternal::Type::Member;
+        Slot() {
+    if (weakPtr.expired() || method == nullptr) {
+        return;
+    }
 
-    if (weakPtr.expired()) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");  //XXX bad!!! should constructs empty slot instead!
-    }
-    if (method == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
+    _type = SlotInternal::Type::Member;
+    _comparison = ComparisonType{
+        (void*)(weakPtr.lock().get()),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))
+    };
 
     _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
         auto sharedPtr = weakPtr.lock();
         if (!sharedPtr) {
-            throw new EmptySlot();
+            throw new std::bad_function_call();
         }
         return static_cast<ReturnType>(
                 (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
@@ -367,21 +351,21 @@ template <
 >
 Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
                         ReturnType (WeakPtrType::element_type::*method)(ArgTypes...)) :
-        _comparison((void*)weakPtr.lock().get(),
-                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
-    _type = SlotInternal::Type::Member;
+        Slot() {
+    if (weakPtr.expired() || method == nullptr) {
+        return;
+    }
 
-    if (weakPtr.expired()) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
-    }
-    if (method == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
+    _type = SlotInternal::Type::Member;
+    _comparison = ComparisonType{
+        (void*)(weakPtr.lock().get()),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))
+    };
 
     _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
         auto sharedPtr = weakPtr.lock();
         if (!sharedPtr) {
-            throw new BadSlotInstancePointer("Binding null instance pointer");
+            throw new std::bad_function_call();
         }
         return static_cast<ReturnType>(
                 (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
@@ -404,16 +388,17 @@ template <
     >
 >
 Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) :
-        _comparison((void*)sharedPtr.get(),
-                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
-    _type = SlotInternal::Type::Member;
+        Slot() {
 
-    if (!sharedPtr) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
+    if (!sharedPtr || method == nullptr) {
+        return;
     }
-    if (method == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
+
+    _type = SlotInternal::Type::Member;
+    _comparison = ComparisonType {
+        (void*)(sharedPtr.get()),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))
+    };
 
     _function = [sharedPtr, method](ArgTypes&&... args) -> ReturnType {
         return static_cast<ReturnType>(
@@ -433,16 +418,17 @@ template <
 >
 Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr,
                         ReturnType (SharedPtrType::element_type::*method)(ArgTypes...)) :
-        _comparison((void*)sharedPtr.get(),
-                 reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))) {
-    _type = SlotInternal::Type::Member;
+        Slot() {
 
-    if (!sharedPtr) {
-        throw new BadSlotInstancePointer("Binding null instance pointer");
+    if (!sharedPtr || method == nullptr) {
+        return;
     }
-    if (method == nullptr) {
-        throw new BadSlotFunctionPointer("Binding null method pointer");
-    }
+
+    _type = SlotInternal::Type::Member;
+    _comparison = ComparisonType{
+        (void*)(sharedPtr.get()),
+        reinterpret_cast<void*>(*reinterpret_cast<int*>(&method))
+    };
 
     _function = [sharedPtr, method](ArgTypes&&... args) -> ReturnType {
         return static_cast<ReturnType>(
@@ -500,7 +486,7 @@ template<typename Functor,
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
     if (!_function) {
-        throw new EmptySlot("Slot<ReturnType(ArgTypes...)>::invoke");
+        throw new std::bad_function_call();
     }
     return _function(std::forward<ArgTypes>(arguments)...);
 }
@@ -534,6 +520,7 @@ template <
     _function = other._function;
     _statusFunctor = other._statusFunctor;
     _type = other._type;
+    _comparison = other._comparison;
 }
 
 } /* namespace prototype */
