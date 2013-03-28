@@ -7,6 +7,7 @@
 #include "utils/make_unique.h"
 
 #include <memory>
+#include <complex>
 
 typedef int (*FooType)(int);
 
@@ -289,38 +290,38 @@ struct TestSuite {
 
 	void sharedPointerConstructor() {
 
-        QU_SLOT(ptr, nonConst, notOverloadedMethod);
-        QU_SLOT(ptr, constSlot, notOverloadedMethodConst);
+        QU_SLOT(tempPtr, nonConst, notOverloadedMethod);
+        QU_SLOT(tempPtr, constSlot, notOverloadedMethodConst);
 
-        QU_OTHERSLOT(ptr, other, float (), notOverloadedMethod);
-        QU_OTHERSLOT(ptr, otherConst, void (double), notOverloadedMethodConst);
+        QU_OTHERSLOT(tempPtr, other, float (), notOverloadedMethod);
+        QU_OTHERSLOT(tempPtr, otherConst, void (double), notOverloadedMethodConst);
 
-        QU_OVERLOADSLOT(ptr, overload, overload, float (int));
-        QU_OTHERSLOT(ptr, overloadOther, float (int), overload);
-        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot, void (double), overload, float (int));
+        QU_OVERLOADSLOT(tempPtr, overload, overload, float (int));
+        QU_OTHERSLOT(tempPtr, overloadOther, float (int), overload);
+        QU_OTHER_OVERLOADSLOT(tempPtr, overloadOtherSlot, void (double), overload, float (int));
 
-        QU_OVERLOADSLOT(ptr, overload2, overload, float (int, int));
-        QU_OTHERSLOT(ptr, overloadOther2, float (int, int), overload);
-        QU_OTHER_OVERLOADSLOT(ptr, overloadOtherSlot2, void (double, float), overload, float (int, int));
+        QU_OVERLOADSLOT(tempPtr, overload2, overload, float (int, int));
+        QU_OTHERSLOT(tempPtr, overloadOther2, float (int, int), overload);
+        QU_OTHER_OVERLOADSLOT(tempPtr, overloadOtherSlot2, void (double, float), overload, float (int, int));
 
-        QU_OTHERSLOT(ptr, complexOther, double (int), overloadedMethod);
-        QU_OTHERSLOT(ptr, complexOther2, double (int, double), overloadedMethod);
+        QU_OTHERSLOT(tempPtr, complexOther, double (int), overloadedMethod);
+        QU_OTHERSLOT(tempPtr, complexOther2, double (int, double), overloadedMethod);
 
-        QU_OVERLOADSLOT(ptr, complexOveload, overloadedMethod, double (int));
-        QU_OVERLOADSLOT(ptr, complexOveloadStrict, overloadedMethod, double (int), prototype::NonConstMethod);
-        QU_OVERLOADSLOT(ptr, complexOveloadConst, overloadedMethod, double (int), prototype::ConstMethod);
+        QU_OVERLOADSLOT(tempPtr, complexOveload, overloadedMethod, double (int));
+        QU_OVERLOADSLOT(tempPtr, complexOveloadStrict, overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(tempPtr, complexOveloadConst, overloadedMethod, double (int), prototype::ConstMethod);
 
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload, void (long), overloadedMethod, double (int));
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict, void (long), overloadedMethod, double (int), prototype::NonConstMethod);
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst, void (long), overloadedMethod, double (int), prototype::ConstMethod);
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveload, void (long), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveloadStrict, void (long), overloadedMethod, double (int), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveloadConst, void (long), overloadedMethod, double (int), prototype::ConstMethod);
 
-        QU_OVERLOADSLOT(ptr, complexOveload2, overloadedMethod, double (int, double));
-        QU_OVERLOADSLOT(ptr, complexOveloadStrict2, overloadedMethod, double (int, double), prototype::NonConstMethod);
-        QU_OVERLOADSLOT(ptr, complexOveloadConst2, overloadedMethod, double (int), prototype::ConstMethod);
+        QU_OVERLOADSLOT(tempPtr, complexOveload2, overloadedMethod, double (int, double));
+        QU_OVERLOADSLOT(tempPtr, complexOveloadStrict2, overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OVERLOADSLOT(tempPtr, complexOveloadConst2, overloadedMethod, double (int), prototype::ConstMethod);
 
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
-        QU_OTHER_OVERLOADSLOT(ptr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveload2, void (long, long), overloadedMethod, double (int, double));
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveloadStrict2, void (long, float), overloadedMethod, double (int, double), prototype::NonConstMethod);
+        QU_OTHER_OVERLOADSLOT(tempPtr, other_complexOveloadConst2, void (long, long), overloadedMethod, double (int, double), prototype::ConstMethod);
     }
 
 	void nonThisConstructorTest() {
@@ -550,11 +551,11 @@ struct TestSuite {
         ASSERT(overload1 == copySlot);
         ASSERT(copySlot != staticSLotPtr);
 
-        //compare 2x2 instance slots
-        auto object = instance.get();
+        //instance slots
+        auto object = tempPtr.get();
         QU_OTHERSLOT(object, complexOther1a, double (int), overloadedMethod);
         QU_OTHERSLOT(object, complexOther2a, double (int, double), overloadedMethod);
-        QU_OTHER_OVERLOADSLOT(object, complexOther1b, double (float), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(object, complexOther1b, int (float), overloadedMethod, double (int));
         QU_OTHER_OVERLOADSLOT(object, complexOther2b, double (int, int), overloadedMethod, double (int, double));
         ASSERT(complexOther1a == complexOther1b);
         ASSERT(complexOther1b == complexOther1a);
@@ -579,14 +580,130 @@ struct TestSuite {
         ASSERT_EQUAL(false, complexOther2b == complexOther1a);
         ASSERT_EQUAL(false, complexOther2a == complexOther1a);
         ASSERT_EQUAL(false, complexOther2b == complexOther1b);
-        //compare 2x2 functors
-        //compare shared variant with simple
-        //compare weak variant with simple
-        //compare weak with shared
-        //release shared, but keep pointer and compare with weak variant
 
-        //reassign some of then with other signature and test again
+        {
+        //compare shared variant with simple
+            QU_OTHER_OVERLOADSLOT(tempPtr, complexOther1bs, int (float), overloadedMethod, double (int));
+            QU_OTHER_OVERLOADSLOT(tempPtr, complexOther2bs, double (int, int), overloadedMethod, double (int, double));
+
+            ASSERT(complexOther1a == complexOther1bs);
+            ASSERT(complexOther1bs == complexOther1a);
+            ASSERT(complexOther2a == complexOther2bs);
+            ASSERT(complexOther2bs == complexOther2a);
+            ASSERT(complexOther2a == complexOther2a);
+            ASSERT(complexOther1a != complexOther2bs);
+            ASSERT(complexOther1bs != complexOther2a);
+            ASSERT(complexOther2a != complexOther1bs);
+            ASSERT(complexOther2bs != complexOther1a);
+            ASSERT(complexOther2a != complexOther1a);
+            ASSERT(complexOther2bs != complexOther1bs);
+
+            ASSERT_EQUAL(false, complexOther1a != complexOther1bs);
+            ASSERT_EQUAL(false, complexOther1bs != complexOther1a);
+            ASSERT_EQUAL(false, complexOther2a != complexOther2bs);
+            ASSERT_EQUAL(false, complexOther2bs != complexOther2a);
+            ASSERT_EQUAL(false, complexOther2a != complexOther2a);
+            ASSERT_EQUAL(false, complexOther1a == complexOther2bs);
+            ASSERT_EQUAL(false, complexOther1bs == complexOther2a);
+            ASSERT_EQUAL(false, complexOther2a == complexOther1bs);
+            ASSERT_EQUAL(false, complexOther2bs == complexOther1a);
+            ASSERT_EQUAL(false, complexOther2a == complexOther1a);
+            ASSERT_EQUAL(false, complexOther2bs == complexOther1bs);
+        }
+
+        //compare weak variant with simple
+        QU_OTHER_OVERLOADSLOT(ptr, complexOther1bw, int (float), overloadedMethod, double (int));
+        QU_OTHER_OVERLOADSLOT(ptr, complexOther2bw, void (int, int), overloadedMethod, double (int, double));
+
+        ASSERT(complexOther1a == complexOther1bw);
+        ASSERT(complexOther1bw == complexOther1a);
+        ASSERT(complexOther2a == complexOther2bw);
+        ASSERT(complexOther2bw == complexOther2a);
+        ASSERT(complexOther2a == complexOther2a);
+        ASSERT(complexOther1a != complexOther2bw);
+        ASSERT(complexOther1bw != complexOther2a);
+        ASSERT(complexOther2a != complexOther1bw);
+        ASSERT(complexOther2bw != complexOther1a);
+        ASSERT(complexOther2a != complexOther1a);
+        ASSERT(complexOther2bw != complexOther1bw);
+
+        ASSERT_EQUAL(false, complexOther1a != complexOther1bw);
+        ASSERT_EQUAL(false, complexOther1bw != complexOther1a);
+        ASSERT_EQUAL(false, complexOther2a != complexOther2bw);
+        ASSERT_EQUAL(false, complexOther2bw != complexOther2a);
+        ASSERT_EQUAL(false, complexOther2a != complexOther2a);
+        ASSERT_EQUAL(false, complexOther1a == complexOther2bw);
+        ASSERT_EQUAL(false, complexOther1bw == complexOther2a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther1bw);
+        ASSERT_EQUAL(false, complexOther2bw == complexOther1a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther1a);
+        ASSERT_EQUAL(false, complexOther2bw == complexOther1bw);
+
+        //compare weak with shared
+        {
+            QU_OTHERSLOT(ptr, complexOther1aw, double (int), overloadedMethod);
+            QU_OTHERSLOT(ptr, complexOther2aw, double (int, double), overloadedMethod);
+            QU_OTHER_OVERLOADSLOT(tempPtr, complexOther1bs, std::complex<float> (float), overloadedMethod, double (int));
+            QU_OTHER_OVERLOADSLOT(tempPtr, complexOther2bs, void (int, int), overloadedMethod, double (int, double));
+
+            ASSERT(complexOther1aw == complexOther1bs);
+            ASSERT(complexOther1bs == complexOther1aw);
+            ASSERT(complexOther2aw == complexOther2bs);
+            ASSERT(complexOther2bs == complexOther2aw);
+            ASSERT(complexOther2aw == complexOther2aw);
+            ASSERT(complexOther1aw != complexOther2bs);
+            ASSERT(complexOther1bs != complexOther2aw);
+            ASSERT(complexOther2aw != complexOther1bs);
+            ASSERT(complexOther2bs != complexOther1aw);
+            ASSERT(complexOther2aw != complexOther1aw);
+            ASSERT(complexOther2bs != complexOther1bs);
+
+            ASSERT_EQUAL(false, complexOther1aw != complexOther1bs);
+            ASSERT_EQUAL(false, complexOther1bs != complexOther1aw);
+            ASSERT_EQUAL(false, complexOther2aw != complexOther2bs);
+            ASSERT_EQUAL(false, complexOther2bs != complexOther2aw);
+            ASSERT_EQUAL(false, complexOther2aw != complexOther2aw);
+            ASSERT_EQUAL(false, complexOther1aw == complexOther2bs);
+            ASSERT_EQUAL(false, complexOther1bs == complexOther2aw);
+            ASSERT_EQUAL(false, complexOther2aw == complexOther1bs);
+            ASSERT_EQUAL(false, complexOther2bs == complexOther1aw);
+            ASSERT_EQUAL(false, complexOther2aw == complexOther1aw);
+            ASSERT_EQUAL(false, complexOther2bs == complexOther1bs);
+        }
+        //release shared, but keep pointer and compare with weak variant
+        tempPtr.reset();
+        ASSERT(complexOther1a != complexOther1bw);
+        ASSERT(complexOther1bw != complexOther1a);
+        ASSERT(complexOther2a != complexOther2bw);
+        ASSERT(complexOther2bw != complexOther2a);
+        ASSERT(complexOther1a != complexOther2bw);
+        ASSERT(complexOther1bw != complexOther2a);
+        ASSERT(complexOther2a != complexOther1bw);
+        ASSERT(complexOther2bw != complexOther1a);
+
+        ASSERT_EQUAL(false, complexOther1a == complexOther1bw);
+        ASSERT_EQUAL(false, complexOther1bw == complexOther1a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther2bw);
+        ASSERT_EQUAL(false, complexOther2bw == complexOther2a);
+        ASSERT_EQUAL(false, complexOther1a == complexOther2bw);
+        ASSERT_EQUAL(false, complexOther1bw == complexOther2a);
+        ASSERT_EQUAL(false, complexOther2a == complexOther1bw);
+        ASSERT_EQUAL(false, complexOther2bw == complexOther1a);
+
         //empty slots should be equal
+        ASSERT(complexOther2bw == complexOther1bw);
+        ASSERT(complexOther1bw == complexOther2bw);
+        ASSERT(emptySlot == complexOther1bw);
+        ASSERT(emptySlot == complexOther2bw);
+        ASSERT(complexOther2bw == emptySlot);
+        ASSERT(complexOther1bw == emptySlot);
+
+        ASSERT_EQUAL(false, complexOther2bw != complexOther1bw);
+        ASSERT_EQUAL(false, complexOther1bw != complexOther2bw);
+        ASSERT_EQUAL(false, emptySlot != complexOther1bw);
+        ASSERT_EQUAL(false, emptySlot != complexOther2bw);
+        ASSERT_EQUAL(false, complexOther2bw != emptySlot);
+        ASSERT_EQUAL(false, complexOther1bw != emptySlot);
     }
 };
 

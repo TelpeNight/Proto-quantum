@@ -42,7 +42,7 @@ public:
     constexpr Slot(std::nullptr_t) {}
 
     template<typename ComponentType, typename MemberType>
-    Slot(ComponentType* pComponent, MemberType&& functor);
+    Slot(ComponentType* pComponent, MemberType functor);
 
     template<typename ComponentType>
     Slot(ComponentType* pComponent, ReturnType (ComponentType::*functor)(ArgTypes...));
@@ -61,7 +61,7 @@ public:
                 SlotInternal::SlotTag
             >
         > = 0
-    > Slot(Functor&& functor);
+    > Slot(const Functor& functor);
 
     template<
         typename Functor,
@@ -75,7 +75,7 @@ public:
                 RemoveRef<Functor>
             >
         > = 0
-    > Slot(Functor&& functor);
+    > Slot(const Functor& functor);
     //-----------------------------------------------------------//
 
     template<
@@ -85,7 +85,7 @@ public:
                 RemoveAll<StaticFunction>
             >
         > = 0
-    >Slot(StaticFunction&& functor);
+    >Slot(StaticFunction functor);
 
     Slot(FunctionSignature* function);
 
@@ -97,7 +97,7 @@ public:
                 decltype(&WeakPtrType::expired)
             >
         > = 0
-    >Slot(WeakPtrType& weakPtr, MemberType&& method);
+    >Slot(WeakPtrType& weakPtr, MemberType method);
 
     template <
         class WeakPtrType,
@@ -117,7 +117,7 @@ public:
                 decltype(&SharedPtrType::get)
             >
         > = 0
-    >Slot(SharedPtrType& sharedPtr, MemberType&& method);
+    >Slot(SharedPtrType& sharedPtr, MemberType method);
 
     template <
         class SharedPtrType,
@@ -164,8 +164,15 @@ public:
 
     template<typename OtherSlot>
     bool _equals(const OtherSlot& other) const {
+        if ((void*)this == (void*)(&other)) {
+            return true;
+        }
+
         if (!bool(*this) && !bool(other)) {
             return true;
+        }
+        if (bool(*this) xor bool(other)) {
+            return false;
         }
 
         if (_type != other._type) {
@@ -188,6 +195,9 @@ public:
         }
         if (!bool(*this) && !bool(other)) {
             return true;
+        }
+        if (bool(*this) xor bool(other)) {
+            return false;
         }
 
         if (_type != other._type) {
@@ -281,7 +291,7 @@ Slot<ReturnType(ArgTypes...)>::Slot(FunctionSignature* function) :
 
 template<typename ReturnType, typename ... ArgTypes>
 template<typename ComponentType, typename MemberType>
-Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType&& functor) :
+Slot<ReturnType(ArgTypes...)>::Slot(ComponentType* pComponent, MemberType functor) :
         Slot(){
     if (pComponent == nullptr || functor == nullptr) {
          return;
@@ -332,7 +342,7 @@ template <
         >
     >
 >
-Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType&& method) :
+Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType method) :
         Slot() {
     if (weakPtr.expired() || method == nullptr) {
         return;
@@ -406,7 +416,7 @@ template <
         >
     >
 >
-Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType&& method) :
+Slot<ReturnType(ArgTypes...)>::Slot(SharedPtrType& sharedPtr, MemberType method) :
         Slot() {
 
     if (!sharedPtr || method == nullptr) {
@@ -461,7 +471,7 @@ template<typename StaticFunction,
     EnableIf<
         std::is_function<RemoveAll<StaticFunction> >
     >
-> Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction&& functor) :
+> Slot<ReturnType(ArgTypes...)>::Slot(StaticFunction functor) :
     _function(std::forward<StaticFunction>(functor)),
     _type(SlotInternal::Type::Static),
     _comparison(NULL, (void*)functor)
@@ -480,8 +490,8 @@ template<typename Functor,
             SlotInternal::SlotTag
         >
     >
-> Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
-    _function(std::forward<Functor>(functor)),
+> Slot<ReturnType(ArgTypes...)>::Slot(const Functor& functor) :
+    _function(functor),
     _type(SlotInternal::Type::Object)
 {}
 
@@ -497,8 +507,8 @@ template<typename Functor,
             RemoveRef<Functor>
         >
     >
-> Slot<ReturnType(ArgTypes...)>::Slot(Functor&& functor) :
-    _function(std::forward<Functor>(functor)),
+> Slot<ReturnType(ArgTypes...)>::Slot(const Functor& functor) :
+    _function(functor),
     _type(SlotInternal::Type::Object)
 {}
 
