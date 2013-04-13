@@ -30,6 +30,58 @@ public:
     }
 };
 
+class ComparableFunctor {
+public:
+    int operator()(int a) {
+        return a;
+    }
+
+    bool valid = true;
+};
+
+namespace prototype {
+    template<>
+    bool hasComarison<ComparableFunctor>() {
+        return true;
+    }
+
+    template<>
+    bool compareFuctors<ComparableFunctor>(const ComparableFunctor& t1, const ComparableFunctor& t2) {
+        return t1.valid == t2.valid;
+    }
+
+    template<>
+    bool validateFuctors<ComparableFunctor>(const ComparableFunctor& t) {
+        return t.valid;
+    }
+}
+
+class ComparableFunctor2 {
+public:
+    int operator()(int a) {
+        return a;
+    }
+
+    bool valid = true;
+};
+
+namespace prototype {
+    template<>
+    bool hasComarison<ComparableFunctor2>() {
+        return true;
+    }
+
+    template<>
+    bool compareFuctors<ComparableFunctor2>(const ComparableFunctor2& t1, const ComparableFunctor2& t2) {
+        return t1.valid == t2.valid;
+    }
+
+    template<>
+    bool validateFuctors<ComparableFunctor2>(const ComparableFunctor2& t) {
+        return t.valid;
+    }
+}
+
 static int notOverloadedFunction() {
         return 0;
     }
@@ -486,6 +538,15 @@ struct TestSuite {
         ASSERT(!bool(nullSlot4));
         ASSERT(!bool(nullSlot5));
         ASSERT(!bool(nullSlot6));
+
+        ComparableFunctor f1;
+        ComparableFunctor f2;
+        f2.valid = false;
+
+        QU_STATIC_SLOT(ff1, f1);
+        QU_STATIC_SLOT(ff2,f2);
+        ASSERT(bool(ff1));
+        ASSERT(!bool(ff2));
     }
 
     void nullptrComparisonTest() {
@@ -704,6 +765,37 @@ struct TestSuite {
         ASSERT_EQUAL(false, emptySlot != complexOther2bw);
         ASSERT_EQUAL(false, complexOther2bw != emptySlot);
         ASSERT_EQUAL(false, complexOther1bw != emptySlot);
+
+        {
+            //functors
+            ComparableFunctor f1;
+            ComparableFunctor f2;
+            ComparableFunctor2 f12;
+            ComparableFunctor2 f22;
+            f2.valid = false;
+            f22.valid = false;
+            QU_STATIC_SLOT(stSlotCom1, f1);
+            QU_STATIC_SLOT(stSlotCom12, ComparableFunctor());
+            QU_STATIC_SLOT(stSlotCom2, f2);
+            QU_STATIC_SLOT(stSlotCom22, f2);
+            QU_STATIC_SLOT(stSlot1, Functor());
+            QU_STATIC_OVERLOADSLOT(stSlot2, OverLoadedFunctor(), int(int));
+            auto lmb = [](){return 1;};
+            QU_STATIC_SLOT(stSlot3, lmb);
+            QU_STATIC_SLOT(stSlot32, lmb);
+
+            ASSERT(stSlotCom1 == stSlotCom12);
+            ASSERT(stSlotCom2 == stSlotCom22);
+            ASSERT(stSlotCom2 != stSlotCom12);
+            ASSERT(stSlotCom1 != stSlotCom22);
+            ASSERT(stSlot3 != stSlot32);
+            ASSERT(stSlot1 != stSlotCom1);
+
+            QU_STATIC_SLOT(comp21, f12);
+            QU_STATIC_SLOT(comp22, f22);
+            ASSERT(stSlotCom1 != comp21);
+            ASSERT(stSlotCom2 == comp22);       //both invalid!
+        }
     }
 };
 

@@ -10,11 +10,13 @@
 
 #include "Signature.h"
 #include "TemplateHelpers.h"
+#include "FunctorHandler.h"
 
 #include <functional>
 #include <stdexcept>
 #include <type_traits>
 #include <cassert>
+#include <memory>
 
 namespace prototype {
 
@@ -26,9 +28,10 @@ namespace SlotInternal {
     enum class Type : char {NON, Object, Static, Member};
 }
 
-template<typename ReturnType, typename ... ArgTypes>
-class Slot<ReturnType(ArgTypes...)> {
+template<typename RType, typename ... ArgTypes>
+class Slot<RType(ArgTypes...)> {
 public:
+    typedef RType ReturnType;
     typedef SlotInternal::SlotTag Tag;
     typedef ReturnType (FunctionSignature)(ArgTypes...);
 
@@ -153,6 +156,7 @@ public:
     ReturnType invoke(ArgTypes&&... arguments);
 
     explicit operator bool() const;
+    bool isEmpty() const;
 
 //private:
     typedef std::pair<void*,void*> ComparisonType;
@@ -161,6 +165,7 @@ public:
     std::function<bool ()> _statusFunctor = TrueFunctor();
     SlotInternal::Type _type = SlotInternal::Type::NON;
     ComparisonType _comparison;
+    std::shared_ptr<FunctionObjectHandler> _functorHandler;
 
     template<typename OtherSlot>
     bool _equals(const OtherSlot& other) const {
@@ -180,9 +185,11 @@ public:
         }
         assert(_type != SlotInternal::Type::NON);
 
-        //TODO provide object comparison
         if (_type == SlotInternal::Type::Object) {
-            return false;
+            if (!_functorHandler || !other._functorHandler) {
+                return false;
+            }
+            return _functorHandler->compare(other._functorHandler.get());
         }
 
         return _comparison.first == other._comparison.first
@@ -205,9 +212,11 @@ public:
         }
         assert(_type != SlotInternal::Type::NON);
 
-        //TODO provide object comparison
         if (_type == SlotInternal::Type::Object) {
-            return false;
+            if (!_functorHandler || !other._functorHandler) {
+                return false;
+            }
+            return _functorHandler ->compare(other._functorHandler.get());
         }
 
         return _comparison.first == other._comparison.first
@@ -250,14 +259,16 @@ Slot<ReturnType(ArgTypes...)>::Slot(const Slot& other) :
         _function(other._function),
         _statusFunctor(other._statusFunctor),
         _type(other._type),
-        _comparison(other._comparison){}
+        _comparison(other._comparison),
+        _functorHandler(other._functorHandler){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::Slot(Slot&& other) :
         _function(std::move(other._function)),
         _statusFunctor(std::move(other._statusFunctor)),
         _type(other._type),
-        _comparison(std::move(other._comparison)){}
+        _comparison(std::move(other._comparison)),
+        _functorHandler(std::move(other._functorHandler)){}
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>&
@@ -267,6 +278,7 @@ Slot<ReturnType(ArgTypes...)>::operator=(const Slot& other) {
         _type= other._type;
         _statusFunctor = other._statusFunctor;
         _comparison = other._comparison;
+        _functorHandler = other._functorHandler;
     }
     return *this;
 }
@@ -279,6 +291,7 @@ Slot<ReturnType(ArgTypes...)>::operator=(Slot&& other) {
         _statusFunctor = std::move(other._statusFunctor);
         _type = other._type;
         _comparison = std::move(other._comparison);
+        _functorHandler = std::move(other._functorHandler);
     }
     return *this;
 }
@@ -355,12 +368,8 @@ Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr, MemberType method) :
     };
 
     _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
-        auto sharedPtr = weakPtr.lock();
-        if (!sharedPtr) {
-            throw new std::bad_function_call();
-        }
         return static_cast<ReturnType>(
-                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+                (weakPtr.lock().get()->*method)(std::forward<ArgTypes>(args)...)
         );
     };
 
@@ -392,12 +401,8 @@ Slot<ReturnType(ArgTypes...)>::Slot(WeakPtrType& weakPtr,
     };
 
     _function = [weakPtr, method](ArgTypes&&... args) -> ReturnType {
-        auto sharedPtr = weakPtr.lock();
-        if (!sharedPtr) {
-            throw new std::bad_function_call();
-        }
         return static_cast<ReturnType>(
-                (sharedPtr.get()->*method)(std::forward<ArgTypes>(args)...)
+                (weakPtr.lock().get()->*method)(std::forward<ArgTypes>(args)...)
         );
     };
 
@@ -491,9 +496,20 @@ template<typename Functor,
         >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(const Functor& functor) :
-    _function(functor),
     _type(SlotInternal::Type::Object)
-{}
+{
+    if (hasComarison<Functor>()) {
+        auto functorHandler = new FunctorHandler<Functor>(functor);
+        _function = [functorHandler](ArgTypes&&... args) -> ReturnType {
+            return static_cast<ReturnType>(
+                    functorHandler->functor(std::forward<ArgTypes>(args)...)
+            );
+        };
+        _functorHandler.reset(functorHandler);
+    } else {
+        _function = functor;
+    }
+}
 
 template<typename ReturnType, typename ... ArgTypes>
 template<typename Functor,
@@ -508,13 +524,24 @@ template<typename Functor,
         >
     >
 > Slot<ReturnType(ArgTypes...)>::Slot(const Functor& functor) :
-    _function(functor),
     _type(SlotInternal::Type::Object)
-{}
+{
+    if (hasComarison<Functor>()) {
+        auto functorHandler = new FunctorHandler<Functor>(functor);
+        _function = [functorHandler](ArgTypes&&... args) -> ReturnType {
+            return static_cast<ReturnType>(
+                    functorHandler->functor(std::forward<ArgTypes>(args)...)
+            );
+        };
+        _functorHandler.reset(functorHandler);
+    } else {
+        _function = functor;
+    }
+}
 
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
-    if (!_function) {
+    if (isEmpty()) {
         throw new std::bad_function_call();
     }
     return _function(std::forward<ArgTypes>(arguments)...);
@@ -527,7 +554,13 @@ ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
 
 template<typename ReturnType, typename ... ArgTypes>
 Slot<ReturnType(ArgTypes...)>::operator bool() const {
-    return _function != nullptr && _statusFunctor();
+    return !isEmpty();
+}
+
+template<typename ReturnType, typename ... ArgTypes>
+bool Slot<ReturnType(ArgTypes...)>::isEmpty() const {
+    bool statusResult = _statusFunctor() && (_functorHandler ? _functorHandler->validate() : true);
+    return !(_function != nullptr && statusResult);
 }
 
 template<typename ReturnType, typename ... ArgTypes>
@@ -550,6 +583,7 @@ template <
     _statusFunctor = other._statusFunctor;
     _type = other._type;
     _comparison = other._comparison;
+    _functorHandler = other._functorHandler;
 }
 
 } /* namespace prototype */
