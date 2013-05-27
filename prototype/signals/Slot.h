@@ -60,7 +60,7 @@ public:
         > = 0,
         DisableIf<
             std::is_same<
-                typename RemoveRef<Functor>::SlotTag,
+                typename RemoveRef<Functor>::Tag,
                 SlotInternal::SlotTag
             >
         > = 0
@@ -155,7 +155,6 @@ public:
     ReturnType operator()(ArgTypes&&... arguments);
     ReturnType invoke(ArgTypes&&... arguments);
 
-    explicit operator bool() const;
     bool isEmpty() const;
 
 //private:
@@ -173,10 +172,10 @@ public:
             return true;
         }
 
-        if (!bool(*this) && !bool(other)) {
+        if (this->isEmpty() && other.isEmpty()) {
             return true;
         }
-        if (bool(*this) xor bool(other)) {
+        if (!(!this->isEmpty() && !other.isEmpty())) {
             return false;
         }
 
@@ -200,10 +199,10 @@ public:
         if (this == &other) {
             return true;
         }
-        if (!bool(*this) && !bool(other)) {
+        if (this->isEmpty() && other.isEmpty()) {
             return true;
         }
-        if (bool(*this) xor bool(other)) {
+        if (!(!this->isEmpty() && !other.isEmpty())) {
             return false;
         }
 
@@ -226,22 +225,22 @@ public:
 
 template<typename Signature>
 bool operator==(std::nullptr_t, const Slot<Signature>& slot) {
-    return !bool(slot);
+    return slot.isEmpty();
 }
 
 template<typename Signature>
 bool operator==(const Slot<Signature>& slot,std::nullptr_t) {
-    return !bool(slot);
+    return slot.isEmpty();
 }
 
 template<typename Signature>
 bool operator!=(std::nullptr_t, const Slot<Signature>& slot) {
-    return bool(slot);
+    return !slot.isEmpty();
 }
 
 template<typename Signature>
 bool operator!=(const Slot<Signature>& slot,std::nullptr_t) {
-    return bool(slot);
+    return !slot.isEmpty();
 }
 
 template<typename Signature1, typename Signature2>
@@ -491,7 +490,7 @@ template<typename Functor,
     >,
     DisableIf<
         std::is_same<
-            typename RemoveRef<Functor>::SlotTag,
+            typename RemoveRef<Functor>::Tag,
             SlotInternal::SlotTag
         >
     >
@@ -550,11 +549,6 @@ ReturnType Slot<ReturnType(ArgTypes...)>::invoke(ArgTypes&&... arguments) {
 template<typename ReturnType, typename ... ArgTypes>
 ReturnType Slot<ReturnType(ArgTypes...)>::operator()(ArgTypes&&... arguments) {
     return invoke(std::forward<ArgTypes>(arguments)...);
-}
-
-template<typename ReturnType, typename ... ArgTypes>
-Slot<ReturnType(ArgTypes...)>::operator bool() const {
-    return !isEmpty();
 }
 
 template<typename ReturnType, typename ... ArgTypes>

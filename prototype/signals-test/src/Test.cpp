@@ -499,7 +499,7 @@ struct TestSuite {
         ASSERT_THROWS(emptySlot(), std::bad_function_call*);
     }
 
-    void boolOperatorTest() {
+    /*void boolOperatorTest() {
         //XXX bad test coverage
         ASSERT_EQUALM("Not empty slot", true, bool(nonEmptyInstanceSlot));
         ASSERT_EQUALM("Empty slot", false, bool(emptySlot));
@@ -547,7 +547,7 @@ struct TestSuite {
         QU_STATIC_SLOT(ff2,f2);
         ASSERT(bool(ff1));
         ASSERT(!bool(ff2));
-    }
+    }*/
 
     void nullptrComparisonTest() {
         ASSERT_EQUAL(true, nonEmptyInstanceSlot != nullptr);
@@ -827,7 +827,7 @@ void runSuite(){
 	cute::suite s;
     s += CUTE_SMEMFUN(TestSuite, assignTest);
     s += CUTE_SMEMFUN(TestSuite, invokeTest);
-    s += CUTE_SMEMFUN(TestSuite, boolOperatorTest);
+    //s += CUTE_SMEMFUN(TestSuite, boolOperatorTest);
     s += CUTE_SMEMFUN(TestSuite, nullptrComparisonTest);
     s += CUTE_SMEMFUN(TestSuite, comparisonTest);
     runner(s, "SignalTest");

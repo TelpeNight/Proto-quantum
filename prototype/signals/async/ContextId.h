@@ -14,13 +14,7 @@ namespace async {
     class ContextManager;
     class ContextId {
         friend class ContextManager;
-    public:
-        ContextId(const ContextId& other): _id(other._id){}
-
-        inline
-        bool operator==(const ContextId& other) {return _id == other._id;}
-    private:
-        ContextId();
+        ContextId() : _id(0){}
         int _id;
     };
 

@@ -100,10 +100,6 @@ struct HasTag : std::false_type{};
 template<typename T>
 struct HasTag<T, typename EnableIfType<typename T::Tag>::type> : std::true_type{};
 
-#define QU_DECLARE_HAS_TAG_CHECKER(__typename) \
-        template<typename T>    \
-        struct IsType<T, typename EnableIfType<T::__typename>::type> : std::true_type{};
-
 }
 
 
